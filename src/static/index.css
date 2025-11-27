@@ -1,0 +1,374 @@
+#container {
+    display: flex;
+    flex-wrap: wrap;
+    width: auto;
+    justify-content: center;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+main {
+    margin-top: 6vh;
+    border: 3px solid gray;
+    border-radius: 20px;
+    width: 900px;
+    padding: 3vh;
+    display: block;
+}
+
+.task-item {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    margin: 10px;
+    padding: 16px;
+    width: 850px;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+}
+
+.task-link {
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.task-item-name {
+    color: white;
+    font-size: 16pt;
+    width: auto;
+    
+}
+
+.task-link:hover {
+    color: rgb(105, 105, 105);
+    text-shadow: 2px 2px 1px rgb(82, 82, 82);
+}
+
+.task-item-done {
+    display: block;
+    margin-left: auto;
+}
+
+.task-item-done a{
+    text-decoration: none;
+    font-size: 21pt;
+    text-decoration: none;
+    color: green;
+    transition: all 0.3s ease;
+}
+
+.task-item-done a:hover{
+    color: rgb(8, 69, 8);
+}
+
+.task-item-delete {
+    margin-left: 20px;
+    margin-right: 10px;
+}
+
+.task-item-delete a{
+    text-decoration: none;
+    font-size: 18pt;
+    text-decoration: none;
+    color: red;
+    transition: all 0.3s ease;
+}
+
+.task-item-delete a:hover {
+    color: rgb(127, 5, 5);
+}
+
+.task-item-add {
+    border:3px dashed #ccc; 
+    border-radius: 10px;
+    margin: 10px;
+    padding: 16px;
+    width: 845px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.task-item-add:hover {
+    box-shadow: 3px 3px 3px gray;
+    text-shadow: 3px 3px 2px rgb(82, 82, 82);
+
+}
+
+.task-item-add i {
+    font-size: 16pt;
+    padding: 4px;
+    border: 3px dashed #ccc;
+    border-radius: 20px;
+    color: white;
+}
+
+.task-item-add p {
+    margin-top: 8px;
+    color: white;
+}
+
+.task-item-add-link {
+    text-decoration: none;
+    color: #ccc;
+}
+
+aside {
+    display: block;
+    margin-top: 6vh;
+    width: auto;
+    border: 3px solid gray;
+    border-radius: 20px;
+    text-align: center;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+aside h1 {
+    margin-top: 30px;
+    color: white;
+}
+
+
+#calendarContainer {
+    width: 500px;
+    height: auto;
+    overflow: hidden; /* Скрываем выходящий за пределы контент */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#scrollWrapper {
+    display: flex;
+    transform: translateX(-3000px);
+    transition: transform 0.4s ease-in-out;
+}
+
+.month {
+    display: flex;
+    min-width: 500px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    height: auto;
+}
+
+.calendar-wrapper {
+    display: block;
+    width: auto;
+    height: auto;
+    border-radius: 5px;
+    text-align: center;
+    padding-top: 2em;
+    padding-left: 2em;
+    padding-right: 2em;
+    padding-bottom: 2em;
+}
+
+#buttonContainer {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    width: 500px;
+}
+
+
+table {
+    clear: both;
+    width: 100%;
+    height: 100%;
+    border-radius: 3px;
+    border-collapse: collapse;
+    color: white;
+    border: 1;
+}
+
+td {
+    height: 40px;
+    min-width: 40px;
+    border-right: 1px solid gray;
+    border-top: 1px solid gray;
+    padding-left: 10px;
+    padding-right: 10px;
+
+}
+
+td:last-child {
+    border-right: none;
+}
+
+.days * {
+    border-top: none;
+}
+
+thead td {
+    border: none;
+    color: white;
+    text-transform: uppercase;
+    font-size: 1.5em;
+    text-align: center;
+}
+
+td.not-current {
+    color: rgb(75, 74, 74);
+}
+
+td.today {
+    font-weight: 700;
+    color: green;
+    font-size: 1.5em;
+}
+
+#btnPrev, #btnNext {
+    border: none;
+    outline: none;
+    color: gray;
+    cursor: pointer;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    background: transparent;
+    width: 250px;
+    height: 70px;
+    transition: all 0.4s ease;
+
+}
+
+#btnPrev::after, #btnNext::after {
+    transition: inherit;
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.5) 25%, rgba(226, 226, 226, 0.5) 40%, rgba(201, 201, 201, 0.5) 60%, rgba(177, 177, 177, 0.5) 75%);
+    opacity: 0;
+    position: absolute;
+    width: 240px;
+    height: 70px;
+    content: "";
+    border-radius: inherit;
+}
+
+
+
+#btnPrev:hover::after, #btnNext:hover::after {
+    transition: inherit;
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.5) 25%, rgba(226, 226, 226, 0.5) 40%, rgba(201, 201, 201, 0.5) 60%, rgba(177, 177, 177, 0.5) 75%);
+    opacity: 1.0;
+    position: absolute;
+    width: 240px;
+    height: 70px;
+    content: "";
+    border-radius: inherit;
+}
+
+#btnPrev:hover, #btnNext:hover {
+    color: #fff;
+}
+
+
+#btnPrev i, #btnNext i {
+    font-size: 40pt;
+
+}
+
+#btnPrev p, #btnNext p {
+    font-size: 16pt;
+    text-wrap: wrap;
+
+}
+
+.calendar-mark-button {
+    width: 18px;
+    height: 18px;
+    border: none;
+    margin: 2px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.calendar-mark-button:hover {
+    box-shadow: 2px 2px 1px gray;
+}
+
+#chartContainer {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 30px; 
+    margin-bottom: 30px;    
+    justify-content: center;
+    width: 400px;
+    height: auto;
+
+}
+
+#chartContainer h2 {
+    color: white;
+    font-family: "Ubuntu";
+    margin-bottom: 20px;
+}
+
+
+.fire-icon-container {
+    animation: tilt-animation 3s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+}
+
+.fire-icon-container i {
+    font-size: 24pt;
+    color: orange;
+}
+
+#calendarModalContainer {
+    position: absolute;
+    display: block;
+}
+
+
+.calendar-modal {
+    display: none;
+    position: absolute;
+    z-index: 10;
+    transform: translate(-60%, -60%);
+}
+
+#calendarModalContent {
+    padding: 40px;
+    min-width: 400px;
+    
+
+    --bgColor: rgb(27, 27, 27);
+    --borderGradient: linear-gradient(
+        to right bottom, rgb(38, 58, 213), rgb(90, 38, 213), rgb(119, 37, 190), rgb(73, 7, 91)
+    );
+
+    background: linear-gradient(
+        var(--bgColor),
+        var(--bgColor)
+    ) padding-box,
+    var(--borderGradient) border-box;
+    border: 5px solid transparent;
+    border-radius: 20px;
+}
+
+#calendarModalTail {
+    width: 30px;
+    height: 30px;
+    background-color: rgb(73, 7, 91);
+    display: block;
+    margin-left: auto;
+    margin-right: 15px;
+    border-bottom-left-radius: 100%;
+    transform: translateY(-1px);
+}
+
+.calendar-modal h2 {
+    color: #fff;
+
+}
+
+.show {display:block;}
+
+.deadlines-container {
+    min-width: 40px;
+    display: flex;
+    flex-wrap: wrap;
+}
+

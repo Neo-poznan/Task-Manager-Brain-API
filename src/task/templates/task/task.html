@@ -1,0 +1,42 @@
+{% extends 'task/base.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'user_form.css' %}">
+<link rel="stylesheet" href="{% static 'task_creation_form.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+{% endblock %}
+
+{% block content %}
+<main>
+    <div id="errors">
+        {{ form.errors }}
+    </div>
+    <form action="" method="post">
+        {% csrf_token %}
+
+        {{ form.name.label_tag }}
+        {{ form.name }}
+
+        {{ form.description.label_tag }}
+        <div id="rendering-content-container">
+            <div  id="rendering-content" style="display: none;"></div>
+            {{ form.description }}
+        </div>
+
+        {{ form.category.label_tag }}
+        {{ form.category }}
+
+        {{ form.deadline.label_tag }}
+        {{ form.deadline }}
+
+        {{ form.planned_time.label_tag }}
+        {{ form.planned_time }}
+        
+    <button type="submit">Отправить</button>
+
+</main>
+<script src="{% static 'js/task_form.js' %}"></script>
+
+
+{% endblock %}

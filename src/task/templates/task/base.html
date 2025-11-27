@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{% static 'base.css' %}">
+    <link rel="stylesheet" href="{% static 'time_input.css' %}">
+    <link rel="shortcut icon" href="{% static 'icons/brain_icon.svg' %}" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    {% block css %}
+    {% endblock %}
+</head>
+<body>
+    <header>
+        <a href="{% url 'task:my_tasks' %}" id="logo-url">
+        <div id="logo-container"><i class="ri-brain-line"></i><h1>Task Manager Brain</h1></div>
+        </a>
+        {% if user.is_authenticated %}
+        <nav>
+            <div class="nav-links">
+                <a href="#" id="historyButton">История</a>
+                <a href="{% url 'task:categories' %}">Категории Задач</a>
+                <a href="{% url 'history:user_shared_histories' %}">Ссылки на историю</a>
+            </div>
+            <div id="user-info">
+                <div class="dropdown-container">
+                    <button class="drop-button" onclick="dropDown()">{{ user.username }}</button>
+                    <div class="dropdown-content" id="user-menu">
+                        <a href="{% url 'user:profile' %}">Профиль</a>
+                        <a href="{% url 'user:registration' %}">Страница регистрации</a>
+                        <a href="{% url 'user:logout' %}">Выйти</a>
+                    </div>                
+                </div>
+                <img id="avatar" src="{{ user.avatar.url }}" alt="Не удалось загрузить аватар" width="75px" height="75px">
+            </div>               
+        </nav>
+     
+        {% else %}
+        <nav class="auth-nav">
+            <div class="nav-links">
+                <a href="{% url 'user:registration' %}">Регистрация</a>
+                <a href="{% url 'user:login' %}">Аутентификация</a>
+            </div>
+        </nav>       
+        {% endif %}
+
+
+    </header>
+    {% block content %}
+    {% endblock %}
+    <div id="modalContainer">
+        <div class="modal" id="modal">
+            <div class="skip-button-container">
+                <button id="modalSkip" class="skip-button"><i class="ri-close-large-line close-icon" id="modalCloseIcon"></i></button>
+            </div>
+            
+            <div class="modal-content">
+                <h1>Запрос истории выполненных задач</h1>
+                <p>Укажите с какой даты по какую будет запрошена история</p>
+                <form action="" id="historyForm">
+                    <input type="date" placeholder="Начальная дата" id="fromDate">
+                    <input type="date" placeholder="Конечная дата" id="toDate">
+                    <button type="button" onclick="openHistory()">Получить историю</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+    <div id="modalContainerMessages">
+
+        <div class="modal-messages" id="modal-messages">
+        <div class="skip-button-container">
+            <button id="modalMessagesSkip" class="skip-button"><i class="ri-close-large-line close-icon" id="modalMessagesCloseIcon"></i></button>
+        </div>
+            <div class="modal-content">            
+                {% for message in messages %}
+                    <div class="message-text">{{ message|safe }}</div>
+                {% endfor %}
+            </div>
+        </div>            
+        
+
+    </div>
+    <div id="modalContainerShareHistory">
+        <div class="modal-share-history" id="modalShareHistory">
+            <div class="skip-button-container">
+                <button id="modalShareHistorySkip" class="skip-button"><i class="ri-close-large-line close-icon" id="modalShareHistoryCloseIcon"></i></button>
+            </div>
+            <div class="modal-content">            
+                <h1 class="share-history-info">Подтвердите действие</h1>
+                <p class="share-history-info">Что произойдет как только вы поделитесь историей?</p>
+                <p class="share-history-info">
+                    После того, как вы нажмете на кнопку, все, что вы видите сейчас на экране, 
+                    включая саму историю и статистику станет доступно другим пользователям, 
+                    в том числе не зарегистрированным на сайте,
+                    по специальной уникальной ссылке. Они увидят только это, 
+                    и даже если в указанном промежутке времени появятся новые задачи, то они не будут видны
+                    другим пользователям.
+                </p>
+                <p class="share-history-info">Вы всегда сможете отменить это действие и удалить с сервера ссылку, при этом данные в вашей истории не пострадают</p>
+                <button id="shareButton" onclick="shareHistory()">Поделиться историей</button>
+            </div>       
+        </div>
+    </div>
+
+    <script src="{% static 'js/dropdown_content.js' %}"></script>
+    <script src="{% static 'js/history_request.js' %}"></script>
+    {% if messages %}
+    <script>showMessages()</script>
+    {% endif %}    
+</body>
+</html>

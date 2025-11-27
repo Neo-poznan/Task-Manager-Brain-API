@@ -1,0 +1,61 @@
+{% extends 'task/base.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'categories.css' %}">
+{% endblock %}
+
+{% block content %}
+<main>
+    <div id="categories-list">
+        {% for category in categories_list %}
+        <div class="category-item" id="{{ category.id }}" style="background-color: {{ category.color }};">
+            <div class="category-name">
+                {% if category.is_custom %}
+                    <a class="category-link" href="{% url 'task:category' category.id %}"><p>{{ category.name }}</p></a>
+                {% else %}
+                    <p class="not-custom-category-name">{{ category.name }}</p>
+                {% endif %}
+            </div>
+                {% if category.is_custom %}
+                    <div class="delete-category"><a href="{% url 'task:category_deletion' category.id %}" onclick="deleteCategory(event)"><i class="ri-delete-bin-6-line"></i></a></div>
+                {% endif %}
+        </div>
+        {% endfor %}
+        
+            <a class="category-item-add-link" href="{% url 'task:category_creation' %}">
+                <div class="category-item-add">
+                    <i class="ri-add-large-line"></i>
+                    <p>Добавить категорию</p>
+                </div>
+            </a> 
+        
+    </div>
+
+</main>
+<script>
+    const csrf_token = '{{ csrf_token }}'
+    function deleteCategory(event) {
+        event.preventDefault()
+        const url = event.target.parentElement.href
+ 
+        fetch(url, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {
+                'X-CSRFToken': csrf_token // Установка CSRF-токена в заголовок
+                },
+        })
+        .then(response => response.json())
+        .then(response => {
+            console.log(response);
+            const url_parts = url.split('/');
+            const element = document.getElementById(url_parts[url_parts.length-2]);
+            const container = element.parentElement;
+        })
+        .catch(error => {
+            console.log(error);
+        })
+}
+</script>
+{% endblock %}

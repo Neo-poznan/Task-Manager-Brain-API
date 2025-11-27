@@ -1,0 +1,31 @@
+{% extends 'task/base.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'user_form.css' %}">
+{% endblock %}
+
+{% block content %}
+    <main>
+        <div id="errors">
+            {{ form.errors }}
+        </div>
+        <form action="" method="post">
+            {% csrf_token %}
+            <label for="username-id-for-label" >Имя пользователя</label>
+            {{ form.username }}
+
+            <label for="email-id-for-label">Адрес электронной почты</label>
+            {{ form.email }}
+
+            <label for="password1-id-for-label">Пароль</label>
+            {{ form.password1 }}
+
+            <label for="password2-id-for-label">Повторите пароль</label>
+            {{ form.password2 }}
+
+            <button type="submit">Отправить</button>
+        </form>
+
+    </main>
+{% endblock %}

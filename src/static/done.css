@@ -1,0 +1,35 @@
+main {
+    margin: auto;
+    margin-top: 28vh;
+    width: 450px;
+    height: 180px;
+    border: 5px solid rgb(53, 53, 53);
+    border-radius: 25px;
+    background-color: rgb(20, 20, 20);
+    padding: 20px;
+    color: white;
+}
+
+main h3 {
+    margin-top: 10px;
+}
+
+main div {
+    text-align: center;
+    margin-top: 40px;
+}
+
+main div a {
+    display: block;
+    color: gray;
+    font-size: 20pt;
+    text-wrap: nowrap;
+    margin: 12px;
+    transition: all 0.3s ease;
+
+}
+
+main div a:hover {
+    color: rgb(52, 51, 51);
+    text-shadow: 2px 2px 1px rgb(82, 82, 82);
+}

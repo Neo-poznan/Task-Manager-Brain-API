@@ -1,0 +1,97 @@
+main {
+    margin-top: 6vh;
+    border: 3px solid gray;
+    border-radius: 20px;
+    width: 900px;
+    padding: 3vh;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.category-item {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    margin: 10px;
+    padding: 16px;
+    width: 850px;
+    display: flex;
+    align-items: center;
+}
+
+.category-link {
+    color: white;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.category-name {
+    font-size: 16pt;
+    width: auto;
+    display: flex;
+    gap: 30px;
+    color: #fff;
+}
+
+.not-custom-category-name {
+    color: gray;
+}
+
+.category-link:hover {
+    color: rgb(107, 105, 105);
+    text-shadow: 2px 2px 1px rgb(82, 82, 82);
+
+}
+
+.delete-category {
+    margin-left: 20px;
+    margin-right: 10px;
+    margin-left: auto;
+}
+
+.delete-category a{
+    text-decoration: none;
+    font-size: 18pt;
+    text-decoration: none;
+    color: red;
+    transition: all 0.3s ease;
+}
+
+.delete-category a:hover {
+    color: rgb(127, 5, 5);
+}
+
+.category-item-add {
+    border:3px dashed #ccc; 
+    border-radius: 10px;
+    margin: 10px;
+    padding: 16px;
+    width: 845px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.category-item-add:hover {
+    box-shadow: 3px 3px 3px gray;
+    text-shadow: 3px 3px 2px rgb(82, 82, 82);
+
+}
+
+.category-item-add i {
+    color: #fff;
+    font-size: 16pt;
+    padding: 4px;
+    border: 3px dashed #ccc;
+    border-radius: 20px;
+}
+
+.category-item-add p {
+    margin-top: 8px;
+    color: #fff;
+}
+
+.category-item-add-link {
+    text-decoration: none;
+    color: #ccc;
+
+}

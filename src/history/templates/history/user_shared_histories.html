@@ -1,0 +1,63 @@
+{% extends 'task/base.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'categories.css' %}">
+{% endblock %}
+
+{% block content %}
+<main>
+    <div id="categories-list">
+        {% if histories %}
+            {% for history in histories %}
+            <div class="category-item" id="{{ history.key }}">
+                <div class="category-name">
+                    <a class="category-link" href="{% url 'history:share' %}?key={{ history.key }}"><p>{{ history.key }}</p></a><p>{{ history.from_date }} - {{ history.to_date }}</p>
+                </div>
+                <div class="delete-category"><a href="{% url 'history:delete_shared_history' history.key %}" onclick="deleteHistory(event)"><i class="ri-delete-bin-6-line"></i></a></div>
+            </div>
+        {% endfor %}
+        {% else %}
+            <div class="category-name">
+                <h1 style="color: white;">У вас пока нет сохраненных историй</h1>
+            </div>
+        {% endif %}
+    </div>
+<script>
+    const csrf_token = '{{ csrf_token }}'
+    function deleteHistory(event) {
+        event.preventDefault()
+        const url = event.target.parentElement.href
+        console.log(url)
+
+        fetch(url, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: {
+                'X-CSRFToken': csrf_token // Установка CSRF-токена в заголовок
+                },
+        })
+        .then(response => response.json())
+        .then(response => {
+            console.log(response);
+            const url_parts = url.split('/');
+            const element = document.getElementById(url_parts[url_parts.length-2]);
+            const container = element.parentElement;
+            element.remove();
+            if (document.getElementsByClassName('category-item').length == 0) {
+                container.innerHTML = `
+                <div class="category-item">
+                    <div class="category-name">
+                        <h1 style="color: white;">У вас пока нет сохраненных историй</h1>
+                    </div>
+                </div>
+                `
+            }
+        })
+        .catch(error => {
+            console.log(error);
+        })
+}
+</script>
+</main>
+{% endblock %}

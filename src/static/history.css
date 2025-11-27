@@ -1,0 +1,258 @@
+#container {
+    display: flex;
+    flex-wrap: wrap;
+    width: auto;
+    justify-content: center;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+main {
+    margin-top: 6vh;
+    border: 3px solid gray;
+    border-radius: 20px;
+    width: 900px;
+    padding: 3vh;
+    display: block;
+}
+
+.history-info-container {
+    display: flex;
+    vertical-align: middle;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-left: 10px;
+}
+
+#historyDates {
+    color: white;
+    font-size: 20pt;
+}
+
+#shareLink {
+    color: gray;
+    font-size: 20pt;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+}
+
+#shareLink:hover {
+    color: rgb(52, 51, 51);
+    text-shadow: 2px 2px 1px rgb(82, 82, 82);
+}
+
+.task-item {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    margin: 10px;
+    padding: 16px;
+    width: 850px;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+}
+
+.task-item-name{
+    color: white;
+    font-size: 16pt;
+    width: auto;
+}
+
+
+.task-item-delete {
+    margin-left: auto;
+    margin-right: 10px;
+}
+
+.task-item-delete a{
+    text-decoration: none;
+    font-size: 18pt;
+    text-decoration: none;
+    color: red;
+    transition: all 0.3s ease;
+}
+
+.task-item-delete a:hover {
+    color: rgb(127, 5, 5);
+}
+
+
+aside {
+    display: block;
+    margin-top: 6vh;
+    border: 3px solid gray;
+    border-radius: 20px;
+    padding: 20px;
+    width: 500px;
+}
+
+
+.statistics-container {
+    width: 500px;
+    height: auto;
+    overflow: hidden; /* Скрываем выходящий за пределы контент */
+    position: relative;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.statistics-wrapper {
+    display: flex;
+    transition: transform 0.5s ease-in-out; /* Анимация плавного смещения */
+}
+
+.content {
+    min-width: 500px; /* Ширина каждого контента равна ширине контейнера */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    background-color: rgb(15, 15, 15);
+    font-size: 1.5rem;
+}
+
+.content h1 {
+    color: white;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.button-container {
+    display: flex;
+    gap: 100px;
+    justify-content: center;
+    padding-bottom: 20px;
+
+}
+
+
+#btnPrev, #btnNext {
+    border: none;
+    outline: none;
+    color: gray;
+    cursor: pointer;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    width: 200px;
+    height: 70px;
+    transition: all 0.4s ease;
+
+}
+
+#btnPrev::after, #btnNext::after {
+    transition: inherit;
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.5) 25%, rgba(226, 226, 226, 0.5) 40%, rgba(201, 201, 201, 0.5) 60%, rgba(177, 177, 177, 0.5) 75%);
+    opacity: 0;
+    position: absolute;
+    width: 200px;
+    height: 70px;
+    content: "";
+    border-radius: inherit;
+}
+
+
+
+#btnPrev:hover::after, #btnNext:hover::after {
+    transition: inherit;
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.5) 25%, rgba(226, 226, 226, 0.5) 40%, rgba(201, 201, 201, 0.5) 60%, rgba(177, 177, 177, 0.5) 75%);
+    opacity: 1.0;
+    position: absolute;
+    width: 200px;
+    height: 70px;
+    content: "";
+    border-radius: inherit;
+}
+
+#btnPrev:hover, #btnNext:hover {
+    color: #fff;
+}
+
+
+#btnPrev i, #btnNext i {
+    font-size: 40pt;
+
+}
+
+#btnPrev p, #btnNext p {
+    font-size: 16pt;
+    text-wrap: wrap;
+
+}
+
+.common-statistics-container {
+    display: flex;
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
+    justify-content: center;
+}
+
+.common-statistics-container h1 {
+    height: 50px;
+    width: 100px;
+    font-size: 10pt;
+    color: white;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.common-chart-container {
+    width: 150px;
+}
+
+.copy-link-button{
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 40pt;
+    color: gray;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.copy-link-button:hover {
+    color: rgb(52, 51, 51);
+    text-shadow: 2px 2px 1px rgb(82, 82, 82);
+}
+
+.copied {
+    background-color: rgba(221, 221, 221, 0.2);
+    border-radius: 20px;
+    padding: 10px;
+    font-size: 20pt;
+    transition: all 0.3s ease;
+}
+
+.copied:hover {
+    background-color: rgba(147, 147, 147, 0.2);
+}
+
+#owner-info {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    margin-top: 10px;
+}
+
+#owner-name {
+    margin-right: 10px;
+    font-size: 22pt;
+    color: gray;
+    text-decoration: underline;
+}
+
+#owner-avatar {
+    border-radius: 50%;
+    outline: 2px solid gray;
+}
+
+#owner-label {
+margin-right: 10px;
+    font-size: 22pt;
+    color: #fff;
+}

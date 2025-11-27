@@ -1,0 +1,79 @@
+{% extends 'task/base.html' %}
+{% load static %}
+   
+{% block css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="{% static 'index.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="container">
+    <main>
+        
+        <div id="task-list">
+            {% for task in task_list %}    
+                <div class="task-item" draggable="true" id="task{{ task.id }}" deadline="{{ task.deadline.year }}:{{ task.deadline.month }}:{{ task.deadline.day }}">
+                    <div class="task-item-name"><a class="task-link" href="{% url 'task:task' task.id %}"><p>{{ task.name }}</p></div></a>
+                    <div class="task-item-done"><a href="{% url 'task:task_completion' task.id %}"><i class="ri-check-line"></i></a></div>
+                    <div class="task-item-delete"><a href="{% url 'task:task_fail' task.id %}"><i class="ri-delete-bin-6-line"></i></a></div>
+                </div>
+            {% endfor %}
+        <a class="task-item-add-link" href="{% url 'task:task_creation' %}">
+            <div class="task-item-add">
+                <i class="ri-add-large-line"></i>
+                <p>Добавить задачу</p>
+            </div>
+        </a>     
+        </div> 
+
+    </main>
+    <aside>
+        <h1>Дедлайны</h1>
+        <div id="calendarContainer">
+            <div id="calendarModalContainer">
+                <div id="calendarModal" class="calendar-modal">
+                    <div id="calendarModalContent"></div>
+                    <div id="calendarModalTail"></div>
+                </div>
+            </div>
+            <div id="scrollWrapper">
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+                <div class="month"><div class="calendar-wrapper"></div></div>
+            </div>
+            <div id="buttonContainer">
+                <button id="btnPrev"><i class="ri-arrow-left-fill"></i><p>Предыдущий месяц</p></button>
+                <button id="btnNext"><p>Следующий месяц</p><i class="ri-arrow-right-fill"></i></button>
+            </div>
+        </div>
+        <div id="chartContainer">
+            <h2>Мои категории</h2>
+            <br>
+            <canvas id="chart"></canvas>
+        </div>
+    </aside>
+</div>
+
+<script>
+    let chart_data = JSON.parse('{{ chart_data|escapejs }}');
+    let calendar_data = JSON.parse('{{ calendar_data|escapejs }}')
+    let csrftoken = '{{ csrf_token }}'
+    let ordersUpdateUrl = "{% url 'task:order_update' %}"
+    
+</script>
+<script src="{% static 'js/calendar.js' %}"></script>
+<script src="{% static 'js/current_tasks_chart.js' %}"></script>
+<script src="{% static 'js/drag.js' %}"></script>
+<script src="{% static 'js/burning_deadlines.js' %}"></script>
+
+{% endblock %}

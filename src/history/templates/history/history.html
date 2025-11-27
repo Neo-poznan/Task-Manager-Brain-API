@@ -1,0 +1,106 @@
+{% extends 'task/base.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'history.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div id="container">
+        <main>
+            <div class="history-info-container">
+                {% if from_date and to_date %}
+                    <p id="historyDates">{{ from_date }} - {{ to_date }}</p>
+                {% else %}
+                    <p id="historyDates"></p>
+                    <a id="shareLink" href="#" onclick="showShareHistoryModal()">Поделиться историей<i class="ri-share-forward-line"></i></a> 
+                {% endif %}
+                {% if owner %}
+                <div id="owner-info">
+                    <p id="owner-label">История пользователя </p>
+                    <p id="owner-name">{{ owner.username }}</p>
+                    <img id="owner-avatar" src="{{ owner.avatar.url }}" alt="Не удалось загрузить аватар" width="75px" height="75px">
+                </div>    
+                {% endif %}
+            </div>
+            
+            <div id="task-list">
+                {% for task in history %}
+                <div class="task-item">
+                    <div class="task-item-name"><p>{{ task.name }}</p></div>
+                    {% if task.id %}
+                        <div class="task-item-delete"><a href="{% url 'history:delete_history' task.id %}" onclick="deleteHistory(event)"><i class="ri-delete-bin-6-line"></i></a></div>
+                    {% endif %}
+
+                </div>
+                {% endfor %}
+            </div> 
+
+        </main>
+        <aside>
+         
+            <div class="statistics-container">
+                <div class="button-container">
+                    <button id="btnPrev"><i class="ri-arrow-left-fill"></i><p>Предыдущая</p></button>
+                    <button id="btnNext"><p>Следующая</p><i class="ri-arrow-right-fill"></i></button>
+                </div>                   
+                <div class="statistics-wrapper">
+                    <div class="content"><h1>Количество задач в категориях</h1><canvas id="countUserTasksInCategoriesChart"></canvas></div>
+                    <div class="content"><h1>Точность вашего планирования в каждой категории</h1><canvas id="userAccuracyByCategoriesChart"></canvas></div>
+                    <div class="content"><h1>Количество успешно выполненных задач в каждой категории</h1><canvas id="userSuccessRateByCategoriesChart"></canvas></div>
+                    <div class="content"><h1>Количество выполненных задач по каждому дню недели</h1><canvas id="countUserTasksByWeekdaysChart"></canvas></div>
+                    <div class="content"><h1>Количество успешно спланированных задач в каждой категории</h1><canvas id="countUserSuccessfulPlannedTasksByCategoriesChart"></canvas></div>
+                </div>
+
+            </div>
+            <div class="common-statistics-container">
+                <div class="common-chart-container"><h1>Точность планирования</h1><canvas id="commonUserAccuracyChart"></canvas></div>
+                <div class="common-chart-container"><h1>Успешно выполненные задачи</h1><canvas id="commonUserSuccessRateChart"></canvas></div>                    
+                <div class="common-chart-container"><h1>Правильно запланированные задачи</h1><canvas id="commonCountUserSuccessfulPlannedTasksChart"></canvas></div>
+
+            </div>            
+
+        </aside>
+
+    <script>
+        const csrf_token = '{{ csrf_token }}'
+        function deleteHistory(event) {
+            event.preventDefault()
+            const url = event.target.parentElement.href
+            console.log(url)
+
+            fetch(url, {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'X-CSRFToken': csrf_token // Установка CSRF-токена в заголовок
+                    },
+            })
+            .then(response => response.json())
+            .then(response => {
+                console.log(response);
+                window.location.href = window.location.href;
+            })
+            .catch(error => {
+                console.log(error);
+            })
+        }
+    </script>
+    
+    <script>
+        const countUserTasksInCategories = JSON.parse('{{ count_user_tasks_in_categories|escapejs }}');
+        const commonUserAccuracy = JSON.parse('{{ common_user_accuracy|escapejs }}');
+        const userAccuracyByCategories = JSON.parse('{{ user_accuracy_by_categories|escapejs }}');
+        const commonUserSuccessRate = JSON.parse('{{ common_user_success_rate|escapejs }}');
+        const userSuccessRateByCategories = JSON.parse('{{ user_success_rate_by_categories|escapejs }}');
+        const countUserTasksByWeekdays = JSON.parse('{{ count_user_tasks_by_weekdays|escapejs }}');
+        const commonCountUserSuccessfulPlannedTasks = JSON.parse('{{ common_count_user_successful_planned_tasks|escapejs }}');
+        const countUserSuccessfulPlannedTasksByCategories = JSON.parse('{{ count_user_successful_planned_tasks_by_categories|escapejs }}');
+    </script>
+    <script src="{% static 'js/history.js' %}"></script>
+    {% if not from_date %}
+    <script>showDates()</script>
+    {% endif %}
+{% endblock %}
+

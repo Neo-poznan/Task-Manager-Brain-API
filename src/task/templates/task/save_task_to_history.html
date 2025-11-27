@@ -1,0 +1,26 @@
+{% extends 'task/base.html' %}
+{% load static %}
+
+{% block css %}
+<link rel="stylesheet" href="{% static 'user_form.css' %}">
+<link rel="stylesheet" href="{% static 'time_input.css' %}">
+{% endblock %}
+
+{% block content %}
+<main style="margin-top: 30vh;">
+    <div id="errors">
+        {{ form.errors }}
+    </div>
+    <form action="" method="post">
+        {% csrf_token %}
+
+        <label for="execution-time-id-for-label">{{ label }}</label>
+        {{ form.execution_time }}
+        
+        
+    <button type="submit">Отправить</button>
+        
+    </form>
+
+</main>
+{% endblock %}
