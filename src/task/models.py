@@ -126,7 +126,7 @@ class Task(models.Model):
             name=entity.name,
             description=entity.description,
             order=entity.order,
-            category=Category.from_domain(entity.category),
+            category=Category.from_domain(entity.category) if entity.category else None,
             user=User.from_domain(entity.user),
             deadline=entity.deadline,
             planned_time=entity.planned_time
@@ -138,7 +138,7 @@ class Task(models.Model):
             name=self.name,
             description=self.description,
             order=self.order,
-            category=self.category.to_domain(),
+            category=self.category.to_domain() if self.category else None,
             user=self.user.to_domain(),
             deadline=self.deadline,
             planned_time=self.planned_time,

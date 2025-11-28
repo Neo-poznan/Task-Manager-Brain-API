@@ -23,6 +23,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='sharedhistorystatistics',
             name='history_statistics',
-            field=models.JSONField(encoder=history.models.ObjectJSONEncoder, verbose_name='Сохраненная история пользователя по определенному промежутку времени'),
+            field=models.JSONField(verbose_name='Сохраненная история пользователя по определенному промежутку времени'),
         ),
     ]

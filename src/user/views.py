@@ -14,6 +14,7 @@ from task.http import FormJsonResponse
 from .models import RefreshToken, User
 from .jwt_auth import decode_jwt
 from jwt import ExpiredSignatureError, DecodeError
+from task.views import ModelApiView
 
 
 def reset_refresh_token_for_device(
@@ -183,7 +184,7 @@ class UserLoginView(LoginView):
 
 class UserProfileView(
             LoginRequiredMixinWithRedirectMessage, 
-            UpdateView
+            ModelApiView
         ):
     response_class = FormJsonResponse
     form_class = UserProfileForm

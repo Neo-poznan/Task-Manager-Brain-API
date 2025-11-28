@@ -17,7 +17,8 @@ from .validators import history_query_params_validator, history_dates_interval_v
 class HistoryView(
         TitleMixin, 
         LoginRequiredMixinWithRedirectMessage, 
-        UserEntityMixin, View
+        UserEntityMixin, 
+        View
     ) :
     use_case = HistoryUseCase(
             HistoryDatabaseRepository(
@@ -56,7 +57,7 @@ class HistoryView(
                 from_date, to_date
             )
         context['title'] = 'История'
-        return render(request, 'history/history.html', context=context)
+        return JsonResponse({'context': context})
 
 
 class ShareHistoryView(UserEntityMixin, View):

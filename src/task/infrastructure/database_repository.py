@@ -81,7 +81,8 @@ class TaskDatabaseRepository(TaskDatabaseRepositoryInterface):
             ''',
             [user.id]
         )
-        return cursor.fetchall()[0][0]
+        rows = cursor.fetchall()
+        return rows[0][0] if len(rows) > 0 else []
     
     def get_ordered_user_tasks(self, user: UserEntity) -> list[TaskEntity]:
         return self._model.objects.filter(user_id=user.id).order_by('order').to_entity_list()

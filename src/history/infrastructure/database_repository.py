@@ -141,7 +141,7 @@ class HistoryDatabaseRepositoryInterface(ABC):
     def get_user_history(
                 self, 
                 user: UserEntity
-            ) -> list[IncompleteHistoryEntity]:
+            ) -> list:
         pass
 
 
@@ -493,7 +493,7 @@ class HistoryDatabaseRepository(HistoryDatabaseRepositoryInterface):
                 user: UserEntity, 
                 from_date: str, 
                 to_date: str
-            ) -> list[IncompleteHistoryEntity]:
+            ) -> list:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -505,8 +505,5 @@ class HistoryDatabaseRepository(HistoryDatabaseRepositoryInterface):
             ''',
             [user.id, from_date, to_date]
         )
-        return [
-            IncompleteHistoryEntity(id=string[0], name=string[1]) 
-            for string in cursor.fetchall()
-        ]
+        return [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
 

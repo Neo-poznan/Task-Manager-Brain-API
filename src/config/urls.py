@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 urlpatterns = [
 	path('api/', include('task.urls', namespace='task')),
     path('api/user/', include('user.urls', namespace='user')),	
-	path('history/', include('history.urls', namespace='history')),
+	path('api/history/', include('history.urls', namespace='history')),
 ]
 
 if settings.DEBUG:

@@ -8,7 +8,6 @@ from ..domain.entities import TaskEntity, CategoryEntity
 from ..helpers.date import is_out_of_deadline
 from history.infrastructure.database_repository import HistoryDatabaseRepositoryInterface
 
-
 class TaskUseCaseInterface(ABC):
 
     @abstractmethod
@@ -59,14 +58,6 @@ class TaskUseCaseInterface(ABC):
                 self, 
                 user: UserEntity
             ) -> list[CategoryEntity]:
-        pass
-
-    @abstractmethod
-    def delete_user_category_by_id(
-                self, 
-                category_id: int, 
-                user: UserEntity
-            ) -> Union[None, NoReturn]:
         pass
 
     @abstractmethod
@@ -156,18 +147,6 @@ class TaskUseCase(TaskUseCaseInterface):
 
     def get_ordered_user_categories(self, user: UserEntity) -> list[CategoryEntity]:
         return self._category_database_repository.get_ordered_user_categories_json(user)
-
-    def delete_user_category_by_id(
-                self, 
-                category_id: int,
-                user: UserEntity
-            ) -> Union[None, NoReturn]:
-        category = self._category_database_repository.get_category_by_id(category_id)
-        # Это исключение будет райзиться не только тогда, когда пользователь пытается редактировать чужую задачу, но и тогда, 
-        # когда категория не является кастомной, и, соответственно не имеет пользователя
-        if category.user != user:
-            raise PermissionError
-        self._category_database_repository.delete_category(category)
 
     def save_completed_task_to_history(
                 self, 

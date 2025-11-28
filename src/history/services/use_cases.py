@@ -156,58 +156,37 @@ class HistoryUseCase(HistoryUseCaseInterface):
                 user, from_date, to_date
             )
 
-
-        @dataclass
-        class FakeHistoryTask:
-            name: str
-            id: None
-
-
-        return {
-            'count_user_tasks_in_categories': json.dumps(
-                self._format_count_user_tasks_in_categories(
-                        raw_count_user_tasks_in_categories
-                    )
-                ),
-            'common_user_accuracy': json.dumps(
-                self._format_common_user_accuracy(
-                        raw_common_user_accuracy
-                    )
-                ),
-            'user_accuracy_by_categories': json.dumps(
-                self._format_user_accuracy_by_categories(
-                        raw_user_accuracy_by_categories
-                    )
-                ),
-            'common_user_success_rate': json.dumps(
-                    self._format_common_user_success_rate(
-                            raw_common_user_success_rate
-                        )
-                ),
-            'user_success_rate_by_categories': json.dumps(
+        statistics = {
+            'count_user_tasks_in_categories': self._format_count_user_tasks_in_categories(
+                raw_count_user_tasks_in_categories
+            ),
+            'common_user_accuracy': self._format_common_user_accuracy(
+                raw_common_user_accuracy
+            ),
+            'user_accuracy_by_categories': self._format_user_accuracy_by_categories(
+                raw_user_accuracy_by_categories
+            ),
+            'common_user_success_rate': self._format_common_user_success_rate(
+                raw_common_user_success_rate
+            ),
+            'user_success_rate_by_categories':
                 self._format_user_success_rate_by_categories(
-                        raw_user_success_rate_by_categories
-                    )
+                    raw_user_success_rate_by_categories
                 ),
-            'count_user_tasks_by_weekdays': json.dumps(
-            self._format_count_user_tasks_by_weekdays(
-                        raw_count_user_tasks_by_weekdays
-                    )
-                ),
-            'common_count_user_successful_planned_tasks': json.dumps(
-                self._format_common_count_user_successful_planned_tasks(
-                        raw_common_count_successful_planned_tasks
-                    )
-                ),
-            'count_user_successful_planned_tasks_by_categories': json.dumps(
-                self._format_count_user_successful_planned_tasks_by_categories(
-                        raw_count_successful_planned_tasks_by_categories
-                    )
-                ),
-            'history': history if len(history) > 1 else [FakeHistoryTask(
-                    name='В этот период времени у вас не было ни одной задачи', 
-                    id=None
-                )]
+            'count_user_tasks_by_weekdays': self._format_count_user_tasks_by_weekdays(
+                raw_count_user_tasks_by_weekdays
+            ),
+            'common_count_user_successful_planned_tasks': self._format_common_count_user_successful_planned_tasks(
+                raw_common_count_successful_planned_tasks
+            ),
+            'count_user_successful_planned_tasks_by_categories': self._format_count_user_successful_planned_tasks_by_categories(
+                raw_count_successful_planned_tasks_by_categories
+            ),
+
+        }
+        return {
+            'history': history,
+            'statistics': statistics
         }
 
     def _format_count_user_tasks_in_categories(
@@ -221,6 +200,7 @@ class HistoryUseCase(HistoryUseCaseInterface):
             count_user_tasks_in_categories['labels'].append(row[0])
             count_user_tasks_in_categories['colors'].append(row[1])
             count_user_tasks_in_categories['data'].append(row[2])
+        print(count_user_tasks_in_categories)
         return count_user_tasks_in_categories
 
     def _format_common_user_accuracy(

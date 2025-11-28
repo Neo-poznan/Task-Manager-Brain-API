@@ -4,7 +4,6 @@ from django.contrib.auth import get_user_model
 from task.models import Category, DomainQuerySet
 from user.models import User
 from .domain.entities import HistoryEntity, SharedHistoryEntity
-from .serializers import ObjectJSONEncoder
 
 
 class History(models.Model):
@@ -90,7 +89,7 @@ class History(models.Model):
             id=self.id,
             name=self.name,
             user=self.user.to_domain(),
-            category=self.category.to_domain(),
+            category=self.category.to_domain() if self.category else None,
             planned_time=self.planned_time,
             execution_time=self.execution_time,
             execution_date=self.execution_date,
@@ -132,7 +131,6 @@ class SharedHistory(models.Model):
             null=True
         )
     history_statistics = models.JSONField(
-            encoder=ObjectJSONEncoder, 
             verbose_name='Сохраненная история пользователя по определенному промежутку времени'
         )
 
