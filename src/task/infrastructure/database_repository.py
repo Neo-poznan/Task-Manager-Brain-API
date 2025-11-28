@@ -45,6 +45,10 @@ class TaskDatabaseRepositoryInterface(ABC):
     def get_next_task_order(self, user: UserEntity) -> int:
         pass
 
+    @abstractmethod
+    def update_user_task_order(self, user: UserEntity, new_order: list[str]) -> None:
+        pass
+
 
 class CategoryDatabaseRepositoryInterface(ABC):
     @abstractmethod
@@ -147,6 +151,22 @@ class TaskDatabaseRepository(TaskDatabaseRepositoryInterface):
 
     def save_task(self, task: TaskEntity) -> None:
         Task.from_domain(task).save()
+
+    def update_user_task_order(self, user: UserEntity, new_order: list[str]) -> None:
+        cursor = self._connection.cursor()
+        cursor.execute(
+            '''
+            WITH order_cte AS (
+                select order_array.id, order_array.new_order from
+                unnest(%s::int[]) with ordinality as order_array(id, new_order)
+            )
+            UPDATE task_task tt
+            SET "order" = order_cte.new_order
+            FROM order_cte
+            WHERE tt.id = order_cte.id AND tt.user_id = %s;
+            ''',
+            [new_order, user.id]
+        )
 
     def get_next_task_order(self, user: UserEntity) -> int:
         cursor = self._connection.cursor()

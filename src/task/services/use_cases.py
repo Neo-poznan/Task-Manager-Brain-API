@@ -121,17 +121,11 @@ class TaskUseCase(TaskUseCaseInterface):
         return self._task_database_repository.get_next_task_order(user)
 
     def update_user_task_order(
-                self, 
-                user: UserEntity, 
-                new_order: list[str]
-            ) -> None:
-        user_tasks = self._task_database_repository.get_ordered_user_tasks(user)
-        task_dict = {task.id: task for task in user_tasks}
-        for list_index, task_id in enumerate(new_order):
-            if task_dict[int(task_id)].order != list_index + 1:
-                updated_task = task_dict[int(task_id)]
-                updated_task.order = list_index + 1
-                self._task_database_repository.save_task(updated_task)
+            self, 
+            user: UserEntity, 
+            new_order: list[str]
+        ) -> None:
+        self._task_database_repository.update_user_task_order(user, new_order)
 
     def get_user_category_by_id(
                 self, 
