@@ -1,8 +1,6 @@
 from typing import Optional
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-
-from user.domain.entities import UserEntity
+from datetime import datetime
 
 
 @dataclass
@@ -11,7 +9,7 @@ class CategoryEntity:
     name: str
     description: Optional[str]
     color: str
-    user: Optional[UserEntity]
+    user_id: Optional[int]
     is_custom: bool
 
 
@@ -21,8 +19,8 @@ class TaskEntity:
     name: str
     description: Optional[str]
     order: int
-    category: CategoryEntity
-    user: UserEntity
+    category_id: Optional[int]
+    user_id: int
     deadline: Optional[datetime]
     planned_time: str
 

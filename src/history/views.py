@@ -8,15 +8,14 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from task.models import Task
 from history.models import History, SharedHistory
-from task.mixins import TitleMixin, UserEntityMixin, LoginRequiredMixinWithRedirectMessage
+from task.mixins import UserEntityMixin, ApiLoginRequiredMixin
 from .services.use_cases import HistoryUseCase
 from .infrastructure.database_repository import HistoryDatabaseRepository
 from .validators import history_query_params_validator, history_dates_interval_validator
 
 
 class HistoryView(
-        TitleMixin, 
-        LoginRequiredMixinWithRedirectMessage, 
+        ApiLoginRequiredMixin, 
         UserEntityMixin, 
         View
     ) :
@@ -111,12 +110,10 @@ class ShareHistoryView(UserEntityMixin, View):
     
 
 class GetUserSharedHistories(
-            LoginRequiredMixinWithRedirectMessage, 
+            ApiLoginRequiredMixin, 
             UserEntityMixin, 
-            TitleMixin, 
             ListView
         ):
-    title = 'Мои ссылки'
     template_name = 'history/user_shared_histories.html'
     context_object_name = 'histories'
     use_case = HistoryUseCase(HistoryDatabaseRepository(
@@ -132,7 +129,7 @@ class GetUserSharedHistories(
 
 
 class SharedHistoryDeletionView(
-            LoginRequiredMixinWithRedirectMessage, 
+            ApiLoginRequiredMixin, 
             UserEntityMixin, 
             View
         ):
@@ -173,7 +170,7 @@ class SharedHistoryDeletionView(
 
 
 class HistoryDeletionView(
-            LoginRequiredMixinWithRedirectMessage, 
+            ApiLoginRequiredMixin, 
             UserEntityMixin, 
             View
         ):

@@ -61,20 +61,12 @@ class TaskUseCaseInterface(ABC):
         pass
 
     @abstractmethod
-    def save_completed_task_to_history(
+    def save_task_to_history(
                 self, 
                 user: UserEntity, 
                 task_id: int, 
-                execution_time: timedelta
-            ) -> None:
-        pass
-
-    @abstractmethod
-    def save_failed_task_to_history(
-                self, 
-                user: UserEntity, 
-                task_id: int, 
-                execution_time: timedelta
+                execution_time: timedelta,
+                successful: bool,
             ) -> None:
         pass
 
@@ -142,23 +134,21 @@ class TaskUseCase(TaskUseCaseInterface):
     def get_ordered_user_categories(self, user: UserEntity) -> list[CategoryEntity]:
         return self._category_database_repository.get_ordered_user_categories_json(user)
 
-    def save_completed_task_to_history(
+    def save_task_to_history(
                 self, 
                 user: UserEntity, 
                 task_id: int, 
-                execution_time: timedelta
+                execution_time: timedelta,
+                successful: str
             ) -> None:
         task = self._task_database_repository.get_task_by_id(task_id)
-        if task.user != user:
+        if task.user_id != user.id:
             raise PermissionError
-        if not is_out_of_deadline(task.deadline):
+
+        if not successful == 'true':
+            self._history_database_repository.save_task_to_history_as_failed(task, execution_time)
+        elif not is_out_of_deadline(task.deadline):
             self._history_database_repository.save_task_to_history_as_successful(task, execution_time)
         else:
             self._history_database_repository.save_task_to_history_as_outed_of_deadline(task, execution_time)
-
-    def save_failed_task_to_history(self, user: UserEntity, task_id: int, execution_time: timedelta) -> None:
-        task = self._task_database_repository.get_task_by_id(task_id)
-        if task.user != user:
-            raise PermissionError
-        self._history_database_repository.save_task_to_history_as_failed(task, execution_time)
 

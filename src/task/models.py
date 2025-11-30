@@ -53,7 +53,7 @@ class Category(models.Model):
             name=entity.name,
             description=entity.description,
             color=entity.color,
-            user=User.from_domain(entity.user) if entity.user else None,
+            user_id=entity.user.id if entity.user else None,
             is_custom=entity.is_custom
         )
 
@@ -63,7 +63,7 @@ class Category(models.Model):
             name=self.name,
             description=self.description,
             color=self.color,
-            user=self.user.to_domain() if self.user else None,
+            user_id=self.user.id if self.user else None,
             is_custom=self.is_custom
         )
 
@@ -126,8 +126,8 @@ class Task(models.Model):
             name=entity.name,
             description=entity.description,
             order=entity.order,
-            category=Category.from_domain(entity.category) if entity.category else None,
-            user=User.from_domain(entity.user),
+            category_id=entity.category_id if entity.category_id else None,
+            user_id=entity.user_id,
             deadline=entity.deadline,
             planned_time=entity.planned_time
         )
@@ -138,8 +138,8 @@ class Task(models.Model):
             name=self.name,
             description=self.description,
             order=self.order,
-            category=self.category.to_domain() if self.category else None,
-            user=self.user.to_domain(),
+            category_id=self.category.id if self.category else None,
+            user_id=self.user.id,
             deadline=self.deadline,
             planned_time=self.planned_time,
         )

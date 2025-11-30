@@ -53,7 +53,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
                 return HttpResponseRedirect(f'/api/user/refresh/?next={request.get_full_path()}')
         else:
             request.session.access_token_status = True
-            if not  request.path in settings.SKIP_AUTH_MIDDLEWARE_URLS:
+            if not request.path in settings.SKIP_AUTH_MIDDLEWARE_URLS:
                 request.user = SimpleLazyObject(lambda: User.objects.get(id=user_id))
                 request.session[SESSION_KEY] = request.user.id
 

@@ -63,7 +63,7 @@ class User(AbstractUser):
             username=self.username,
             avatar=self.avatar
         )
-    
+
     def get_session_auth_hash(self) -> dict:
         return {'access_token': get_jwt(self), 'refresh_token': get_refresh_jwt(self)}
     

@@ -1,16 +1,15 @@
 import json
 
-from django.views.generic import CreateView, UpdateView, View, DeleteView
+from django.views.generic import UpdateView, View
 from django.urls import reverse_lazy
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseBadRequest, HttpResponseForbidden, HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseNotFound
 from django.shortcuts import render
 from django.db import connection
-from django.http import QueryDict
 
 from django.http.multipartparser import MultiPartParser
 
-from .mixins import TitleMixin, UserEntityMixin, LoginRequiredMixinWithRedirectMessage
+from .mixins import UserEntityMixin, ApiLoginRequiredMixin
 from .forms import TaskCreationForm, CategoryCreationForm, TaskHistoryForm
 from .models import Task, Category
 from .services.use_cases import TaskUseCase
@@ -77,7 +76,7 @@ class ModelApiView(FormParseMixin, UpdateView, DeleteMixin):
 
 
 class MyTasksView(
-            LoginRequiredMixinWithRedirectMessage, 
+            ApiLoginRequiredMixin, 
             UserEntityMixin, 
             View,
         ):
@@ -105,7 +104,7 @@ class MyTasksView(
 class TaskView(
             ModelPermissionMixin,
             UserEntityMixin,
-            LoginRequiredMixinWithRedirectMessage, 
+            ApiLoginRequiredMixin, 
             ModelApiView,
         ):
     '''
@@ -152,7 +151,7 @@ class TaskView(
 
 class CategoryView(
         ModelPermissionMixin,
-        LoginRequiredMixinWithRedirectMessage, 
+        ApiLoginRequiredMixin, 
         ModelApiView,
     ):
     form_class = CategoryCreationForm
@@ -181,7 +180,7 @@ class CategoryView(
 
 
 class CategoriesView(
-            LoginRequiredMixinWithRedirectMessage, 
+            ApiLoginRequiredMixin, 
             UserEntityMixin, 
             View
         ):
@@ -198,7 +197,7 @@ class CategoriesView(
     
 
 class OrderUpdateView(
-            LoginRequiredMixinWithRedirectMessage, 
+            ApiLoginRequiredMixin, 
             UserEntityMixin, 
             View
         ):
@@ -207,11 +206,6 @@ class OrderUpdateView(
     order: массив с id задач, отсортированных в том порядке, к котором они
     будут вставлены в БД
     '''
-
-    def get(self, request):
-        return HttpResponseBadRequest(
-                '<h1>Bab Request</h1><p>Неправильный метод запроса</p>'
-            )
     
     def put(self, request):
         post_data = self.request.body.decode('utf-8')
@@ -228,31 +222,19 @@ class OrderUpdateView(
         return HttpResponse('OK')
 
 
-class TaskCompletionView(
-            LoginRequiredMixinWithRedirectMessage, 
+class SaveTaskToHistoryView(
+            ApiLoginRequiredMixin, 
             UserEntityMixin, 
-            TitleMixin, 
-            View
+            View,
         ):
-    title = 'Подтверждение выполнения задачи'
 
     def dispatch(self, request, *args, **kwargs):
         try:
             return super().dispatch(request, *args, **kwargs)
         except PermissionError:
             return HttpResponseForbidden(
-                    '<h1>400 Forbidden</h1><p>Вы пытаетесь удалить задачу другого пользователя</p>'
-                )
-
-    def get(self, request, task_id: int):
-        return render(
-            request, 
-            'task/save_task_to_history.html',
-            context={
-                'form': TaskHistoryForm(), 
-                'label': 'Сколько времени вам понадобилось на процесс выполнения непосредственно этой задачи'
-                }
-        )
+                '<h1>400 Forbidden</h1><p>Вы пытаетесь удалить задачу другого пользователя</p>'
+            )
 
     def post(self, request, task_id: int):
         use_case = TaskUseCase(
@@ -264,55 +246,12 @@ class TaskCompletionView(
                     connection
                 )
         )
-        use_case.save_completed_task_to_history(
-                self.get_user_entity(), 
-                task_id, 
-                self.request.POST['execution_time']
-            )
-        return HttpResponseRedirect(reverse_lazy('task:my_tasks'))
-    
-
-class TaskFailView(
-            LoginRequiredMixinWithRedirectMessage, 
-            UserEntityMixin, 
-            TitleMixin, 
-            View
-        ): 
-    title = 'Подтверждение провала задачи'
-
-    def dispatch(self, request, *args, **kwargs):
-        try:
-            return super().dispatch(request, *args, **kwargs)
-        except PermissionError:
-            return HttpResponseForbidden(
-                    '<h1>400 Forbidden</h1><p>Вы пытаетесь удалить задачу другого пользователя</p>'
-                )
-
-    def get(self, request, task_id: int):
-        return render(
-            request,
-            'task/save_task_to_history.html', 
-            context={
-                'form': TaskHistoryForm(), 
-                'label': 'Сколько времени вам понадобилось на то, чтобы понять, что вы не сможете выполнить задачу'
-            }
-        )
-
-    def post(self, request, task_id: int):
-        use_case = TaskUseCase(
-            task_database_repository=TaskDatabaseRepository(Task, connection),
-            history_database_repository=HistoryDatabaseRepository(
-                Task, 
-                History,
-                SharedHistory, 
-                connection
-            )
-        )
-        use_case.save_failed_task_to_history(
+        print(self.request.POST)
+        use_case.save_task_to_history(
             self.get_user_entity(), 
-            task_id, 
-            self.request.POST['execution_time']
+            task_id,
+            self.request.POST['execution_time'],
+            successful=self.request.POST['successful'],
         )
-
         return HttpResponseRedirect(reverse_lazy('task:my_tasks'))
     

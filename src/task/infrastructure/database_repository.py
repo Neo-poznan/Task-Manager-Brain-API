@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Union, Type
 
 from django.utils.connection import ConnectionProxy
-from django.db.models import Q
 
 from ..models import Category, Task
 from user.models import User
