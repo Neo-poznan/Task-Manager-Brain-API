@@ -175,7 +175,7 @@ class JWTSessionEngine:
         self.modified = False
         self._auth_user_id = None
         self._redis_client = redis.Redis()
-        self.cookies = request.COOKIES.copy()
+        self.__cookies = request.COOKIES.copy()
 
         if not access_token:
             self._set_random_session_cookie()
@@ -213,9 +213,22 @@ class JWTSessionEngine:
         else:
             yield None
 
+    def __getitem__(self, key):
+        if key == INTERNAL_RESET_SESSION_TOKEN:
+            return self._cached.get(INTERNAL_RESET_SESSION_TOKEN)
+        elif key == HASH_SESSION_KEY:
+            return self.access_token
+        elif key.startswith('_'):
+            return getattr(self, key)
+        elif self.__cookies.get(key):
+            return self.__cookies[key]
+
     def __setitem__(self, key, value):
         if key == INTERNAL_RESET_SESSION_TOKEN:
             self._set_password_reset_token(value)
+        elif key == HASH_SESSION_KEY: 
+            self.access_token = value['access_token']
+            self.refresh_token = value['refresh_token']
         elif key.startswith('_'):
             setattr(self, key, value)
         else:
@@ -225,7 +238,7 @@ class JWTSessionEngine:
         self._cached[INTERNAL_RESET_SESSION_TOKEN] = password_reset_token
         self._cached['modified'] = True
         self._save_cache()  
-      
+
     def _save_cache(self):
         if self._cached['modified']:
             self._redis_client.set(
@@ -234,19 +247,12 @@ class JWTSessionEngine:
             )
         print('saved in redis')
 
-    def __getitem__(self, key):
-        return getattr(self, key)
-
     def __delitem__(self, key):
         del self._cached[key]
         self._redis_client.delete(self.access_token)
 
     def __setattr__(self, name, value):
-        if name == HASH_SESSION_KEY: 
-            self.access_token = value['access_token']
-            self.refresh_token = value['refresh_token']
-        else:
-            return super().__setattr__(name, value)
+        return super().__setattr__(name, value)
 
     @property
     def access_token(self):
@@ -257,7 +263,7 @@ class JWTSessionEngine:
     def access_token(self, value: str):
         self.accessed = True
         self.modified = True
-        self.cookies[settings.ACCESS_TOKEN_COOKIE_NAME] = value
+        self.__cookies[settings.ACCESS_TOKEN_COOKIE_NAME] = value
         self.__access_token = value
 
     @property
@@ -269,7 +275,7 @@ class JWTSessionEngine:
     def refresh_token(self, value: str):
         self.accessed = True
         self.modified = True
-        self.cookies[settings.REFRESH_TOKEN_COOKIE_NAME] = value
+        self.__cookies[settings.REFRESH_TOKEN_COOKIE_NAME] = value
         self.__refresh_token = value
 
     @property
@@ -281,7 +287,7 @@ class JWTSessionEngine:
     def device_id(self, value: str):
         self.accessed = True
         self.modified = True
-        self.cookies[settings.DEVICE_ID_COOKIE_NAME] = value
+        self.__cookies[settings.DEVICE_ID_COOKIE_NAME] = value
         self.__device_id = value
 
     @property

@@ -7,6 +7,7 @@ app_name = 'user'
 urlpatterns = [
     path('check-auth/', views.check_authentication_view),
     path('info/', views.get_user_info_view, name='info'),
+    path('set-csrf/', views.set_new_csrf),
     path('registration/', views.UserRegistrationView.as_view(), name='registration'),
     path('login/', views.UserLoginView.as_view(), name='login'),
     path('profile/', views.UserProfileView.as_view(), name='profile'),

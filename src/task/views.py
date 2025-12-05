@@ -1,104 +1,85 @@
 import json
 
-from django.views.generic import UpdateView, View
+from django.views.generic import View
 from django.urls import reverse_lazy
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponseBadRequest, HttpResponseForbidden, HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseNotFound
-from django.shortcuts import render
+from django.http import HttpResponseForbidden, HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseNotFound
 from django.db import connection
 
-from django.http.multipartparser import MultiPartParser
-
-from .mixins import UserEntityMixin, ApiLoginRequiredMixin
-from .forms import TaskCreationForm, CategoryCreationForm, TaskHistoryForm
+from .forms import TaskForm, CategoryCreationForm
 from .models import Task, Category
 from .services.use_cases import TaskUseCase
 from .infrastructure.database_repository import TaskDatabaseRepository, CategoryDatabaseRepository
 from history.infrastructure.database_repository import HistoryDatabaseRepository
 from history.models import History, SharedHistory
-from task.http import FormJsonResponse
+from core.http import FormJsonResponse
+from core.mixins import UserEntityMixin, ApiLoginRequiredMixin
+from core.views import ModelPermissionMixin, ModelApiView
 
 
-class FormParseMixin:
-    def get_form_kwargs(self):
-        """Return the keyword arguments for instantiating the form."""
-        kwargs = super().get_form_kwargs()
-        if self.request.method == "PUT":
-            parsed = MultiPartParser(self.request.META, self.request, self.request.upload_handlers).parse()
-            kwargs.update(
-                {
-                    "data": parsed[0],
-                    "files": parsed[1],
-                }
-            )
-        return kwargs
-
-
-class ModelPermissionMixin:
-    def get_object(self, queryset = ...):
-        object = super().get_object()
-        if object is None:
-            return
-        elif not object.user == self.request.user:
-            raise PermissionError('Permission denied')
-        return object
-
-
-class DeleteMixin:
-    def delete_object(self, *args, **kwargs):
-        self.object = self.get_object()
-        self.object.delete()
-
-
-class ModelApiView(FormParseMixin, UpdateView, DeleteMixin):
-    def get(self, *args, **kwargs):
-        self.object = self.get_object()
-        return self.render_to_response(self.get_context_data())
-    
-    def post(self, *args, **kwargs):
-        self.request.POST
-        return super().post(*args, **kwargs)
-
-    def put(self, *args, **kwargs):
-        super().put(*args, **kwargs)
-        return JsonResponse({})
-    
-    def delete(self, *args, **kwargs):
-         self.delete_object()
-         return JsonResponse({})
-
-    def get_object(self, queryset = ...):
-        pk = self.kwargs.get(self.pk_url_kwarg)
-        if not pk:
-            return
-        object = super().get_object()
-        return object
-
-
-class MyTasksView(
-            ApiLoginRequiredMixin, 
-            UserEntityMixin, 
-            View,
-        ):
-    template_name = 'task/index.html'
+class TasksView(
+        ApiLoginRequiredMixin, 
+        UserEntityMixin, 
+        View,
+    ):
     use_case = TaskUseCase(
-            task_database_repository=TaskDatabaseRepository(
-                Task, 
-                connection)
-            )
+        task_database_repository=TaskDatabaseRepository(
+        Task, 
+        connection,
+        )
+    )
 
     def get(self, request):
         data = {}
         data['chart_data'] = self.use_case.get_user_task_count_by_categories(
             self.get_user_entity()
         )
-        data['calendar_data'] = self.use_case.get_count_user_tasks_in_categories_by_deadlines(
-            self.get_user_entity()
-        )
         data['tasks'] = self.use_case.get_ordered_user_tasks(
             self.get_user_entity()
         )
         return JsonResponse(data)
+    
+
+class DeadlinesView(
+        ApiLoginRequiredMixin,
+        UserEntityMixin,
+        View,
+    ):
+
+    use_case = TaskUseCase(
+        task_database_repository=TaskDatabaseRepository(
+            Task, 
+            connection)
+        )
+
+    def get(self, request):
+        data = {}
+        data['calendar_data'] = self.use_case.get_user_tasks_by_deadlines(
+            self.get_user_entity()
+        )
+
+        return JsonResponse(data)
+    
+
+class DeadlinesUpdateView(
+        ApiLoginRequiredMixin,
+        UserEntityMixin,
+        View,
+    ):
+
+        use_case = TaskUseCase(
+        task_database_repository=TaskDatabaseRepository(
+            Task, 
+            connection)
+        )
+
+        def post(self, request):
+            post_data = self.request.body.decode('utf-8')
+            post_data_json = json.loads(post_data)
+
+            self.use_case.update_user_deadlines(self.get_user_entity(), post_data_json['new_deadlines'])
+
+            return JsonResponse({})
 
 
 class TaskView(
@@ -117,10 +98,8 @@ class TaskView(
 
     При get запросе возвращает json с базовыми значениями формы
     '''
-    form_class = TaskCreationForm
+    form_class = TaskForm
     response_class = FormJsonResponse
-    template_name = ''
-    success_url = '/'
     model = Task
     pk_url_kwarg = 'task_id'
 
@@ -142,9 +121,10 @@ class TaskView(
                 Task, connection
             )
         ) 
-        form.instance.order = use_case.get_next_task_order(
-            self.get_user_entity()
-        )
+        if not form.instance.order:
+            form.instance.order = use_case.get_next_task_order(
+                self.get_user_entity()
+            )
         form.instance.user = self.request.user
         return super().form_valid(form)
 
@@ -157,8 +137,6 @@ class CategoryView(
     form_class = CategoryCreationForm
     response_class = FormJsonResponse
     model = Category
-    success_url = '/'
-    template_name = ''
     pk_url_kwarg = 'category_id'
 
     def dispatch(self, request, *args, **kwargs):
@@ -182,7 +160,7 @@ class CategoryView(
 class CategoriesView(
             ApiLoginRequiredMixin, 
             UserEntityMixin, 
-            View
+            View,
         ):
     template_name = 'task/categories.html'
     use_case = TaskUseCase(
@@ -199,7 +177,7 @@ class CategoriesView(
 class OrderUpdateView(
             ApiLoginRequiredMixin, 
             UserEntityMixin, 
-            View
+            View,
         ):
     '''
     Принимает post запрос с json, с полями:
@@ -213,7 +191,7 @@ class OrderUpdateView(
         use_case = TaskUseCase(
                 task_database_repository=TaskDatabaseRepository(
                         Task, 
-                        connection
+                        connection,
                     )
             )
         use_case.update_user_task_order(
@@ -243,7 +221,7 @@ class SaveTaskToHistoryView(
                     Task, 
                     History, 
                     SharedHistory, 
-                    connection
+                    connection,
                 )
         )
         print(self.request.POST)

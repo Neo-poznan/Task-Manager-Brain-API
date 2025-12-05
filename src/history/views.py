@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
 from task.models import Task
 from history.models import History, SharedHistory
-from task.mixins import UserEntityMixin, ApiLoginRequiredMixin
+from core.mixins import UserEntityMixin, ApiLoginRequiredMixin
 from .services.use_cases import HistoryUseCase
 from .infrastructure.database_repository import HistoryDatabaseRepository
 from .validators import history_query_params_validator, history_dates_interval_validator

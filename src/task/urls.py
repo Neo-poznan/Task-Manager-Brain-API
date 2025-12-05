@@ -3,9 +3,11 @@ from django.urls import path
 from . import views
 
 app_name = 'task'
-# увековечить в истории
+
 urlpatterns = [
-    path('tasks/', views.MyTasksView.as_view(), name='my_tasks'),
+    path('tasks/', views.TasksView.as_view(), name='my_tasks'),
+    path('deadlines/', views.DeadlinesView.as_view()),
+    path('update-deadlines/', views.DeadlinesUpdateView.as_view()),
     path('task/<int:task_id>/', views.TaskView.as_view()),
     path('task/', views.TaskView.as_view()),
     path('category/<int:category_id>/', views.CategoryView.as_view()), 

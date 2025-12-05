@@ -186,5 +186,5 @@ SESSION_COOKIES_EXPIRED_TIME = datetime.timedelta(weeks=2)
 
 DEVICE_ID_COOKIE_NAME = 'deviceId'
 
-SKIP_REFRESH_URLS = ['/api/user/refresh/', reverse_lazy('user:login'), reverse_lazy('user:password_reset')]
+SKIP_REFRESH_URLS = ['/api/user/refresh/', reverse_lazy('user:login'), reverse_lazy('user:password_reset'), reverse_lazy('user:registration')]
 

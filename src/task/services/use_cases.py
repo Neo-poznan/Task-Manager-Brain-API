@@ -19,10 +19,18 @@ class TaskUseCaseInterface(ABC):
         pass
 
     @abstractmethod
-    def get_count_user_tasks_in_categories_by_deadlines(
+    def get_user_tasks_by_deadlines(
             self, 
             user: UserEntity
         ) -> dict[str, list]:
+        pass
+
+    @abstractmethod
+    def update_user_deadlines(
+            self,
+            user: UserEntity,
+            new_deadlines: dict[str, list]
+        ) -> None:
         pass
 
     @abstractmethod
@@ -91,12 +99,20 @@ class TaskUseCase(TaskUseCaseInterface):
         task_count_statistics = self._task_database_repository.get_count_user_tasks_in_categories(user)
         return task_count_statistics
 
-    def get_count_user_tasks_in_categories_by_deadlines(
+    def get_user_tasks_by_deadlines(
                 self, 
                 user: UserEntity
             ) -> dict[str, list[dict[str, Union[int, str]]]]:
-        count_user_tasks_in_categories_by_deadlines = self._task_database_repository.get_count_user_tasks_in_categories_by_deadlines(user)
+        count_user_tasks_in_categories_by_deadlines = self._task_database_repository.get_user_tasks_by_deadlines(user)
         return count_user_tasks_in_categories_by_deadlines
+    
+    def update_user_deadlines(
+                self,
+                user: UserEntity,
+                new_deadlines: dict[str, list]
+            ) -> None:
+        for date, tasks in new_deadlines.items():
+            self._task_database_repository.update_user_deadlines_by_date(user, date, tasks)
 
     def get_user_task_by_id(
                 self,

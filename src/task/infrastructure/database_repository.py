@@ -1,3 +1,4 @@
+import json
 from abc import ABC, abstractmethod
 from typing import Union, Type
 
@@ -30,10 +31,19 @@ class TaskDatabaseRepositoryInterface(ABC):
             pass
 
     @abstractmethod
-    def get_count_user_tasks_in_categories_by_deadlines(
+    def get_user_tasks_by_deadlines(
                 self, 
                 user: UserEntity
             ) -> dict[str, list[dict[str, Union[str, int]]]]:
+        pass
+
+    @abstractmethod
+    def update_user_deadlines_by_date(
+                self,
+                user: UserEntity,
+                date: str,
+                tasks: list,
+            ):
         pass
 
     @abstractmethod
@@ -120,33 +130,48 @@ class TaskDatabaseRepository(TaskDatabaseRepositoryInterface):
         )
         return cursor.fetchall()[0][0]
 
-    def get_count_user_tasks_in_categories_by_deadlines(
+    def get_user_tasks_by_deadlines(
                 self, 
                 user: UserEntity
             ) -> dict[str, list[dict[str, Union[str, int]]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
-            SELECT json_object_agg(deadline_date, tasks_count_by_category_by_date)
-            FROM 
+            SELECT json_object_agg(subquery.deadline, subquery.tasks) 
+            FROM
             (
-                SELECT to_char(task_deadline, 'YYYY-MM-DD') AS deadline_date, json_agg(json_build_object(
-                    'count', task_count, 'category', category_name, 'color', color
-                )) AS tasks_count_by_category_by_date
-                FROM 
-                (
-                    SELECT count(tt.id) AS task_count, tt.deadline AS task_deadline,
-                    tc.name AS category_name,  tc.color AS color
-                    FROM task_task tt join task_category tc on tt.category_id = tc.id 
-                    WHERE tt.user_id = %s AND tt.deadline IS NOT NULL
-                    GROUP BY tt.deadline, tc.id, tc.name, tc.color
-                )
-                GROUP BY task_deadline
-            );
+                SELECT tt.deadline AS deadline, array_agg(json_build_object('id', tt.id, 'name', tt.name, 'color', tc.color)) AS tasks 
+                FROM task_task tt 
+                JOIN task_category tc ON tc.id = tt.category_id 
+                WHERE tt.user_id = %s AND tt.deadline IS NOT NULL
+                GROUP BY tt.deadline
+            ) AS subquery;
+
             ''',
             [user.id]
         )
         return cursor.fetchall()[0][0]
+    
+    def update_user_deadlines_by_date(
+                self,
+                user: UserEntity,
+                date: str,
+                tasks: list,
+            ):
+        cursor = self._connection.cursor()
+        cursor.execute(
+            '''
+            WITH tasks_cte AS ( 
+                select task -> 'id' as id
+                from jsonb_array_elements(%s::jsonb) as task
+            )
+            UPDATE task_task tt
+            SET deadline = %s
+            FROM tasks_cte
+            WHERE tt.id = tasks_cte.id::int AND tt.user_id = %s;
+            ''',
+            [json.dumps(tasks), date, user.id]
+        )
 
     def save_task(self, task: TaskEntity) -> None:
         Task.from_domain(task).save()

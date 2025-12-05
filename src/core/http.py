@@ -16,9 +16,6 @@ class FormJsonResponse(TemplateResponse):
         super().__init__(request, template, context, content_type, status, charset, using)  
 
     def render(self):
-        if self.context_data is None:
-            self.context_data = {}
-
         form = self.context_data['form']
         if form.errors:
             return JsonResponse({'context': str(form.errors).replace('__all__', '')}, status=400)

@@ -3,7 +3,6 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 from .domain.entities import CategoryEntity, TaskEntity
-from user.models import User
 
 
 class DomainQuerySet(models.QuerySet):

@@ -5,16 +5,22 @@ from django.http import HttpResponseForbidden, JsonResponse, HttpResponseRedirec
 from django.shortcuts import resolve_url
 from django.conf import settings
 from django.db import connection
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .forms import UserRegistrationForm, UserLoginForm, UserProfileForm, UserPasswordChangeForm, UserPasswordResetForm, UserPasswordResetConfirmForm
-from task.mixins import ApiLoginRequiredMixin
-from task.http import FormJsonResponse
+from core.mixins import ApiLoginRequiredMixin
+from core.http import FormJsonResponse
 
 from jwt import ExpiredSignatureError, DecodeError
 from task.views import ModelApiView
 from .services.use_cases import UserUseCase
 from .infrastructure.database_repository import UserDatabaseRepository
-from .models import RefreshToken, User
+from .models import RefreshToken
+
+
+@ensure_csrf_cookie
+def set_new_csrf(request):
+    return JsonResponse({})
 
 
 def get_user_info_view(request):
@@ -36,6 +42,7 @@ def check_authentication_view(request):
 
 
 class RefreshSessionView(View):
+
     def get(self, request):
         return self._refresh()
     
@@ -44,6 +51,7 @@ class RefreshSessionView(View):
 
     def put(self, request):
         return self._refresh()
+
     def delete(self, request):
         return self._refresh()
 
@@ -55,7 +63,7 @@ class RefreshSessionView(View):
         host = self.request.get_host()
 
         if not device_id:
-            raise JsonResponse({'message': 'device id not found'})
+            return JsonResponse({'message': 'device id not found'}, status=400)
 
         use_case = UserUseCase(UserDatabaseRepository(connection=connection, refresh_token_model=RefreshToken))
             
