@@ -1,5 +1,5 @@
 from django.http.multipartparser import MultiPartParser
-from django.http import JsonResponse
+from django.http.response import JsonResponse, HttpResponseRedirectBase, HttpResponseBase
 from django.views.generic import UpdateView
 
 
@@ -53,16 +53,18 @@ class ModelApiView(PutFormParseMixin, SkipConfigurationCheckMixin, UpdateView, D
         return self.render_to_response(self.get_context_data())
     
     def post(self, *args, **kwargs):
-        super().post(*args, **kwargs)
-        return JsonResponse({})
+        return self.get_response(super().post(*args, **kwargs))
 
     def put(self, *args, **kwargs):
-        super().put(*args, **kwargs)
-        return JsonResponse({})
+        return self.get_response(super().put(*args, **kwargs))
     
     def delete(self, *args, **kwargs):
-         self.delete_object()
          return JsonResponse({})
+    
+    def get_response(self, response) -> HttpResponseBase:
+        if isinstance(response, HttpResponseRedirectBase):
+            return JsonResponse({})
+        return response
 
     def get_object(self, queryset = ...):
         return self._get_object_if_exists()

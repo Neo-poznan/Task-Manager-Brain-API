@@ -7,7 +7,6 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from .domain.entities import UserEntity, IncompleteUserEntity
 from .validators import email_validator
-from .jwt_auth import get_jwt, get_refresh_jwt
 
 
 class User(AbstractUser):
@@ -63,9 +62,6 @@ class User(AbstractUser):
             username=self.username,
             avatar=self.avatar
         )
-
-    def get_session_auth_hash(self) -> dict:
-        return {'access_token': get_jwt(self), 'refresh_token': get_refresh_jwt(self)}
     
     def clean(self):
         try:
@@ -75,32 +71,4 @@ class User(AbstractUser):
             pass
 
         email_validator(self.email)
-
-
-class RefreshToken(models.Model):
-    jti = models.CharField(
-        max_length=40, 
-        verbose_name='Уникальный id токена',
-        primary_key=True,
-    )
-    user = models.ForeignKey(
-        to=User,
-        on_delete=models.CASCADE,
-        verbose_name='Пользователь, которому принадлежит токен',
-    )
-    device_id = models.CharField(
-        max_length=40, 
-        verbose_name='Уникальный id устройства сгенерированный на клиенте и хранящийся в cookie',
-    )
-    ip_address = models.CharField(
-        max_length=15,
-        verbose_name='Ip адрес устройства',
-    )
-    user_agent = models.CharField(
-        max_length=100,
-        verbose_name='Информация о браузере клиента',
-    )
-
-    def __str__(self):
-        return f'JTI: {self.jti} Device id: {self.device_id} Ip address: {self.ip_address} User agent: {self.user_agent}'
 

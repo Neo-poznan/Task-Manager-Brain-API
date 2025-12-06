@@ -18,7 +18,7 @@ class HistoryDatabaseRepositoryInterface(ABC):
     @abstractmethod
     def save_task_to_history_as_successful(
                 self, 
-                task: TaskEntity, 
+                task_id: int, 
                 execution_time: timedelta
             ) -> None:
         pass
@@ -26,7 +26,7 @@ class HistoryDatabaseRepositoryInterface(ABC):
     @abstractmethod
     def save_task_to_history_as_outed_of_deadline(
                 self, 
-                task: TaskEntity, 
+                task_id: int, 
                 execution_time: timedelta
             ) -> None:
         pass
@@ -34,7 +34,7 @@ class HistoryDatabaseRepositoryInterface(ABC):
     @abstractmethod
     def save_task_to_history_as_failed(
                 self, 
-                task: TaskEntity, 
+                task_id: int, 
                 execution_time: timedelta
             ) -> None:
         pass
@@ -163,16 +163,16 @@ class HistoryDatabaseRepository(HistoryDatabaseRepositoryInterface):
     @transaction.atomic
     def save_task_to_history_as_successful(
                 self, 
-                task: TaskEntity, 
+                task_id: int, 
                 execution_time: timedelta
             ) -> None:
-        task_model_obj = self._task_model.from_domain(task)
-        task_model_obj.delete()
+        task = self._task_model.objects.get(id=task_id)
+        task.delete()
         self._history_model.objects.create(
-                name=task_model_obj.name,
-                category=task_model_obj.category,
-                user=task_model_obj.user,
-                planned_time=task_model_obj.planned_time,
+                name=task.name,
+                category=task.category,
+                user=task.user,
+                planned_time=task.planned_time,
                 execution_time=execution_time,
                 status=self._history_model.SUCCESSFUL
             )
@@ -180,16 +180,16 @@ class HistoryDatabaseRepository(HistoryDatabaseRepositoryInterface):
     @transaction.atomic
     def save_task_to_history_as_outed_of_deadline(
                 self, 
-                task: TaskEntity, 
+                task_id: int, 
                 execution_time: timedelta
             ) -> None:
-        task_model_obj = self._task_model.from_domain(task)
-        task_model_obj.delete()
+        task = self._task_model.objects.get(id=task_id)
+        task.delete()
         self._history_model.objects.create(
-                name=task_model_obj.name,
-                category=task_model_obj.category,
-                user=task_model_obj.user,
-                planned_time=task_model_obj.planned_time,
+                name=task.name,
+                category=task.category,
+                user=task.user,
+                planned_time=task.planned_time,
                 execution_time=execution_time,
                 status=self._history_model.OUT_OF_DEADLINE
             )
@@ -197,16 +197,16 @@ class HistoryDatabaseRepository(HistoryDatabaseRepositoryInterface):
     @transaction.atomic
     def save_task_to_history_as_failed(
                 self, 
-                task: TaskEntity, 
+                task_id: int, 
                 execution_time: timedelta
             ) -> None:
-        task_model_obj = self._task_model.from_domain(task)
-        task_model_obj.delete()
+        task = self._task_model.objects.get(id=task_id)
+        task.delete()
         self._history_model.objects.create(
-                name=task_model_obj.name,
-                category=task_model_obj.category,
-                user=task_model_obj.user,
-                planned_time=task_model_obj.planned_time,
+                name=task.name,
+                category=task.category,
+                user=task.user,
+                planned_time=task.planned_time,
                 execution_time=execution_time,
                 status=self._history_model.FAILED
             )

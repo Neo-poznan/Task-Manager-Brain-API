@@ -159,12 +159,11 @@ class TaskUseCase(TaskUseCaseInterface):
             ) -> None:
         task = self._task_database_repository.get_task_by_id(task_id)
         if task.user_id != user.id:
-            raise PermissionError
-
-        if not successful == 'true':
-            self._history_database_repository.save_task_to_history_as_failed(task, execution_time)
-        elif not is_out_of_deadline(task.deadline):
-            self._history_database_repository.save_task_to_history_as_successful(task, execution_time)
-        else:
-            self._history_database_repository.save_task_to_history_as_outed_of_deadline(task, execution_time)
+            raise PermissionError()
+        if successful == 'false':
+            self._history_database_repository.save_task_to_history_as_failed(task.id, execution_time)
+        elif is_out_of_deadline(task.deadline):
+            self._history_database_repository.save_task_to_history_as_outed_of_deadline(task.id, execution_time)
+        elif successful == 'true':
+            self._history_database_repository.save_task_to_history_as_successful(task.id, execution_time)
 

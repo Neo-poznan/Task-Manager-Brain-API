@@ -1,7 +1,7 @@
 from django.contrib.auth.views import LoginView, LogoutView, PasswordChangeView, PasswordResetView, PasswordResetDoneView, PasswordResetConfirmView, PasswordResetCompleteView
-from django.views.generic import CreateView, View
+from django.views.generic import CreateView
 from django.urls import reverse_lazy
-from django.http import HttpResponseForbidden, JsonResponse, HttpResponseRedirect
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import resolve_url
 from django.conf import settings
 from django.db import connection
@@ -11,11 +11,7 @@ from .forms import UserRegistrationForm, UserLoginForm, UserProfileForm, UserPas
 from core.mixins import ApiLoginRequiredMixin
 from core.http import FormJsonResponse
 
-from jwt import ExpiredSignatureError, DecodeError
 from task.views import ModelApiView
-from .services.use_cases import UserUseCase
-from .infrastructure.database_repository import UserDatabaseRepository
-from .models import RefreshToken
 
 
 @ensure_csrf_cookie
@@ -36,60 +32,9 @@ def get_user_info_view(request):
 
 
 def check_authentication_view(request):
-    if not request.session.access_token_status:
+    if not request.user.is_authenticated:
         return HttpResponseForbidden()
     return JsonResponse({})
-
-
-class RefreshSessionView(View):
-
-    def get(self, request):
-        return self._refresh()
-    
-    def post(self, request):
-        return self._refresh()
-
-    def put(self, request):
-        return self._refresh()
-
-    def delete(self, request):
-        return self._refresh()
-
-    def _refresh(self):
-        current_refresh_token = self.request.session.refresh_token
-        device_id = self.request.session.device_id 
-        ip_address = self.request.META['HTTP_X_FORWARDED_FOR']
-        user_agent = self.request.META['HTTP_USER_AGENT']
-        host = self.request.get_host()
-
-        if not device_id:
-            return JsonResponse({'message': 'device id not found'}, status=400)
-
-        use_case = UserUseCase(UserDatabaseRepository(connection=connection, refresh_token_model=RefreshToken))
-            
-        try:
-            new_access_token, new_refresh_token = use_case.refresh_session(
-                current_refresh_token=current_refresh_token,
-                device_id=device_id,
-                ip_address=ip_address,
-                user_agent=user_agent,
-                host=host,
-            )
-        except ExpiredSignatureError:
-            self.request.session.flush()
-            print('refresh token expired')
-            return JsonResponse({'message': 'session expired'}, status=401)
-        except DecodeError:
-            print('refresh token not passed')
-            return JsonResponse({'message': 'refresh token not found'}, status=401)
-        except PermissionError:
-            print('no token in database')
-            return JsonResponse({'message': 'no token in database'}, status=403)
-        else:
-            print('session refreshed successfully')
-            self.request.session.access_token = new_access_token
-            self.request.session.refresh_token = new_refresh_token
-            return HttpResponseRedirect(self.request.GET['next'])
 
 
 class UserRegistrationView(CreateView):
@@ -117,16 +62,7 @@ class UserLoginView(LoginView):
 
     def form_valid(self, form):
         super().form_valid(form)
-        use_case = UserUseCase(UserDatabaseRepository(connection=connection, refresh_token_model=RefreshToken))
-        use_case.set_new_session(
-            user=form.get_user(),
-            refresh_token=self.request.session.refresh_token,
-            device_id=self.request.session.device_id,
-            ip_address=self.request.META['HTTP_X_FORWARDED_FOR'],
-            user_agent=self.request.META['HTTP_USER_AGENT'],
-            host=self.request.get_host(),
-        )
-        return JsonResponse({'redirectUrl': self.get_success_url()})
+        return JsonResponse({})
 
     def get_next_page(self):
         return self.request.GET.get('next')
@@ -134,7 +70,7 @@ class UserLoginView(LoginView):
 
 class UserProfileView(
             ApiLoginRequiredMixin, 
-            ModelApiView
+            ModelApiView,
         ):
     response_class = FormJsonResponse
     form_class = UserProfileForm
@@ -145,9 +81,6 @@ class UserProfileView(
 
     def get_object(self, queryset = ...):
         return self.request.user
-
-    def get_success_url(self):
-        return '/user/profile/'
 
 
 class UserPasswordChangeView(

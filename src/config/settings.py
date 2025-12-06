@@ -62,16 +62,15 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'user.middleware.SessionMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'user.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.locale.LocaleMiddleware',
 
 
     'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -169,22 +168,4 @@ LOGIN_URL = reverse_lazy('user:login')
 LOGIN_REDIRECT_URL = '/user/profile/'
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-
-SKIP_AUTH_MIDDLEWARE_URLS = [
-    '/api/user/check-auth/'
-]
-
-PASSWORD_RESET_URL = '/api/user/reset-password/'
-
-ACCESS_TOKEN_COOKIE_NAME = 'accessToken'
-REFRESH_TOKEN_COOKIE_NAME = 'refreshToken'
-ACCESS_TOKEN_EXPIRED_TIME = datetime.timedelta(minutes=20)
-REFRESH_TOKEN_EXPIRED_TIME = datetime.timedelta(weeks=2)
-
-SESSION_COOKIES_EXPIRED_TIME = datetime.timedelta(weeks=2)
-
-DEVICE_ID_COOKIE_NAME = 'deviceId'
-
-SKIP_REFRESH_URLS = ['/api/user/refresh/', reverse_lazy('user:login'), reverse_lazy('user:password_reset'), reverse_lazy('user:registration')]
 

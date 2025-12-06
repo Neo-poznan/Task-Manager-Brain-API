@@ -2,6 +2,7 @@ import re
 
 from django import forms
 from django.utils.dateparse import parse_duration
+from django.db.models import Q
 
 from .models import Task as Task
 from .models import Category as Category
@@ -65,11 +66,11 @@ class TaskForm(forms.ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)        
+        super().__init__(*args, **kwargs)     
         object = kwargs.pop('instance', None)
         if object:
             self.initial['planned_time'] = parse_duration_with_days(str(object.planned_time))
-            
+   
 
 class CategoryCreationForm(forms.ModelForm):
 

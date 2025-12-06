@@ -5,6 +5,7 @@ from django.urls import reverse_lazy
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseForbidden, HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseNotFound
 from django.db import connection
+from django.db.models import Q
 
 from .forms import TaskForm, CategoryCreationForm
 from .models import Task, Category
@@ -103,6 +104,12 @@ class TaskView(
     model = Task
     pk_url_kwarg = 'task_id'
 
+    use_case = TaskUseCase(
+        task_database_repository=TaskDatabaseRepository(
+            Task, connection
+        )
+    ) 
+
     def dispatch(self, request, *args, **kwargs):
         try:
             return super().dispatch(request, *args, **kwargs)
@@ -114,15 +121,15 @@ class TaskView(
             return HttpResponseForbidden(
                 '<h1>400 Forbidden</h1><p>Вы пытаетесь отредактировать задачу другого пользователя</p>'
             )
-    
+
+    def get_form(self, form_class = None):
+        form =  super().get_form(form_class)
+        form.fields['category'].queryset = Category.objects.filter(Q(user=self.request.user) | Q(is_custom=False))
+        return form
+
     def form_valid(self, form):
-        use_case = TaskUseCase(
-            task_database_repository=TaskDatabaseRepository(
-                Task, connection
-            )
-        ) 
         if not form.instance.order:
-            form.instance.order = use_case.get_next_task_order(
+            form.instance.order = self.use_case.get_next_task_order(
                 self.get_user_entity()
             )
         form.instance.user = self.request.user
@@ -224,12 +231,11 @@ class SaveTaskToHistoryView(
                     connection,
                 )
         )
-        print(self.request.POST)
         use_case.save_task_to_history(
             self.get_user_entity(), 
             task_id,
             self.request.POST['execution_time'],
             successful=self.request.POST['successful'],
         )
-        return HttpResponseRedirect(reverse_lazy('task:my_tasks'))
+        return JsonResponse({}, status=201)
     
