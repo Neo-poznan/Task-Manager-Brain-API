@@ -1,42 +1,27 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from decimal import Decimal
-from typing import Type
+from typing import Type, Union, NoReturn
 
-from django.db import transaction
 from django.utils.connection import ConnectionProxy
+
+from task.domain.entities import TaskEntity
 
 from ..models import History, SharedHistory
 from user.models import User
-from task.models import Task
-from task.domain.entities import TaskEntity
 from user.domain.entities import UserEntity
-from ..domain.entities import IncompleteHistoryEntity, SharedHistoryEntity, HistoryEntity
+from ..domain.entities import SharedHistoryEntity, HistoryEntity
 
 
 class HistoryDatabaseRepositoryInterface(ABC):
-    @abstractmethod
-    def save_task_to_history_as_successful(
-                self, 
-                task_id: int, 
-                execution_time: timedelta
-            ) -> None:
-        pass
 
     @abstractmethod
-    def save_task_to_history_as_outed_of_deadline(
-                self, 
-                task_id: int, 
-                execution_time: timedelta
-            ) -> None:
-        pass
-
-    @abstractmethod
-    def save_task_to_history_as_failed(
-                self, 
-                task_id: int, 
-                execution_time: timedelta
-            ) -> None:
+    def save_task_to_history(
+            self, 
+            task_id: int, 
+            execution_time: timedelta,
+            status: str
+        ) -> Union[None, NoReturn]:
         pass
 
     @abstractmethod
@@ -147,69 +132,32 @@ class HistoryDatabaseRepositoryInterface(ABC):
 
 class HistoryDatabaseRepository(HistoryDatabaseRepositoryInterface):
 
-
     def __init__(
                 self, 
-                task_model: Type[Task], 
                 history_model: Type[History], 
                 shared_history_model: Type[SharedHistory], 
                 connection: ConnectionProxy
             ) -> None:
-        self._task_model = task_model
         self._history_model = history_model
         self._shared_history_model = shared_history_model
         self._connection = connection
 
-    @transaction.atomic
-    def save_task_to_history_as_successful(
+    def save_task_to_history(
                 self, 
-                task_id: int, 
-                execution_time: timedelta
-            ) -> None:
-        task = self._task_model.objects.get(id=task_id)
-        task.delete()
-        self._history_model.objects.create(
-                name=task.name,
-                category=task.category,
-                user=task.user,
-                planned_time=task.planned_time,
-                execution_time=execution_time,
-                status=self._history_model.SUCCESSFUL
-            )
-    
-    @transaction.atomic
-    def save_task_to_history_as_outed_of_deadline(
-                self, 
-                task_id: int, 
-                execution_time: timedelta
-            ) -> None:
-        task = self._task_model.objects.get(id=task_id)
-        task.delete()
-        self._history_model.objects.create(
-                name=task.name,
-                category=task.category,
-                user=task.user,
-                planned_time=task.planned_time,
-                execution_time=execution_time,
-                status=self._history_model.OUT_OF_DEADLINE
-            )
-    
-    @transaction.atomic
-    def save_task_to_history_as_failed(
-                self, 
-                task_id: int, 
-                execution_time: timedelta
-            ) -> None:
-        task = self._task_model.objects.get(id=task_id)
-        task.delete()
-        self._history_model.objects.create(
-                name=task.name,
-                category=task.category,
-                user=task.user,
-                planned_time=task.planned_time,
-                execution_time=execution_time,
-                status=self._history_model.FAILED
-            )
+                task: TaskEntity, 
+                execution_time: timedelta,
+                status: str
+            ) -> Union[None, NoReturn]:
+        history = self._history_model(
+            name=task.name,
+            category_id=task.category_id,
+            user_id=task.user_id,
+            planned_time=task.planned_time,
+            execution_time=execution_time,
+            status=status,
+        )
+        history.full_clean()
+        history.save()
 
     def save_user_shared_history(
                 self, 
@@ -316,7 +264,7 @@ class HistoryDatabaseRepository(HistoryDatabaseRepositoryInterface):
             CASE 
                 WHEN extract(epoch FROM planned_time) = 0 
                     OR extract(epoch FROM execution_time) = 0 
-                    THEN NULL
+                    THEN 0
                 WHEN planned_time < execution_time 
                     THEN (extract(epoch FROM planned_time) / 
                     extract(epoch FROM execution_time)) * 100

@@ -14,6 +14,5 @@ urlpatterns = [
     path('category/', views.CategoryView.as_view()), 
     path('categories/', views.CategoriesView.as_view(), name='categories'),
     path('update-order/', views.OrderUpdateView.as_view(), name='order_update'),
-    path('save-to-history/<int:task_id>/', views.SaveTaskToHistoryView.as_view(), name='task_completion'),
 ]
 

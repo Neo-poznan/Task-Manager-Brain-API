@@ -10,5 +10,6 @@ urlpatterns = [
     path('my-shared-histories/', views.GetUserSharedHistories.as_view(), name='user_shared_histories'),
     path('delete-shared-history/<str:history_key>/', views.SharedHistoryDeletionView.as_view(), name='delete_shared_history'),
     path('delete-history/<int:history_id>/', views.HistoryDeletionView.as_view(), name='delete_history'),
+    path('move-to-history/<int:task_id>/', views.MoveTaskToHistoryView.as_view(), name='task_completion'),
 ]
 

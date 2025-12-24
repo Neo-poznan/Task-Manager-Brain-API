@@ -3,7 +3,7 @@ import json
 from django.views.generic import View
 from django.urls import reverse_lazy
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponseForbidden, HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseNotFound
+from django.http import HttpResponseForbidden, HttpResponse, JsonResponse, HttpResponseNotFound
 from django.db import connection
 from django.db.models import Q
 
@@ -11,8 +11,6 @@ from .forms import TaskForm, CategoryCreationForm
 from .models import Task, Category
 from .services.use_cases import TaskUseCase
 from .infrastructure.database_repository import TaskDatabaseRepository, CategoryDatabaseRepository
-from history.infrastructure.database_repository import HistoryDatabaseRepository
-from history.models import History, SharedHistory
 from core.http import FormJsonResponse
 from core.mixins import UserEntityMixin, ApiLoginRequiredMixin
 from core.views import ModelPermissionMixin, ModelApiView
@@ -205,37 +203,4 @@ class OrderUpdateView(
                 self.get_user_entity(), post_data_json['order']
             )
         return HttpResponse('OK')
-
-
-class SaveTaskToHistoryView(
-            ApiLoginRequiredMixin, 
-            UserEntityMixin, 
-            View,
-        ):
-
-    def dispatch(self, request, *args, **kwargs):
-        try:
-            return super().dispatch(request, *args, **kwargs)
-        except PermissionError:
-            return HttpResponseForbidden(
-                '<h1>400 Forbidden</h1><p>Вы пытаетесь удалить задачу другого пользователя</p>'
-            )
-
-    def post(self, request, task_id: int):
-        use_case = TaskUseCase(
-            task_database_repository=TaskDatabaseRepository(Task, connection),
-            history_database_repository=HistoryDatabaseRepository(
-                    Task, 
-                    History, 
-                    SharedHistory, 
-                    connection,
-                )
-        )
-        use_case.save_task_to_history(
-            self.get_user_entity(), 
-            task_id,
-            self.request.POST['execution_time'],
-            successful=self.request.POST['successful'],
-        )
-        return JsonResponse({}, status=201)
     

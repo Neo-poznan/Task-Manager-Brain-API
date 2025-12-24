@@ -58,6 +58,10 @@ class TaskDatabaseRepositoryInterface(ABC):
     def update_user_task_order(self, user: UserEntity, new_order: list[str]) -> None:
         pass
 
+    @abstractmethod
+    def delete_task(self, task: TaskEntity) -> None:
+        pass
+
 
 class CategoryDatabaseRepositoryInterface(ABC):
     @abstractmethod
@@ -203,6 +207,9 @@ class TaskDatabaseRepository(TaskDatabaseRepositoryInterface):
             [user.id]
         )
         return cursor.fetchall()[0][0]
+    
+    def delete_task(self, task: TaskEntity) -> None:
+        self._model.from_domain(task).delete()
 
 
 class CategoryDatabaseRepository(CategoryDatabaseRepositoryInterface):

@@ -35,21 +35,22 @@ class FormJsonResponse(TemplateResponse):
         '''
         form_initial_values = {}
         form_initial_values.update(self._get_all_initial_values_from_form(form))
-        form_initial_values.update(self._get_choices_from_form_choice_fields(form))
-        form_initial_values.update(self._get_file_urls_from_form_file_fields(form))
+        form_initial_values.update(self._get_choices_of_form_choice_fields_from_form(form))
+        form_initial_values.update(self._get_file_urls_from_form(form))
         form_initial_values.update(self._get_form_null_fields(form))
         return form_initial_values
     
     def _get_all_initial_values_from_form(self, form: ModelForm) -> dict[str, str]:
         return {field_name: str(field_value) for field_name, field_value in form.initial.items()}
 
-    def _get_file_urls_from_form_file_fields(self, form: ModelForm) -> dict[str, FieldFile]:
-        return {field_name: form.initial[field_name].url for field_name, field_value in self._get_form_file_fields(form).items()}
+    def _get_file_urls_from_form(self, form: ModelForm) -> dict[str, FieldFile]:
+        form_file_fields = self._get_form_file_fields(form)
+        return {field_name: form.initial[field_name].url for field_name, field_value in form_file_fields.items()}
 
     def _get_form_file_fields(self, form) -> dict[str, FileField]:
         return dict(filter(lambda item: isinstance(item[1], FileField), form.fields.items()))  
 
-    def _get_choices_from_form_choice_fields(self, form: ModelForm) -> dict[str, list[dict[str, Union[str, int]]]]:
+    def _get_choices_of_form_choice_fields_from_form(self, form: ModelForm) -> dict[str, list[dict[str, Union[str, int]]]]:
         form_choice_fields = self._get_form_choice_fields(form)
         choice_fields_choices = {}
         for field_name, field in form_choice_fields.items():

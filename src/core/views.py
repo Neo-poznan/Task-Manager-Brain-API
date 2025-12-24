@@ -1,5 +1,5 @@
 from django.http.multipartparser import MultiPartParser
-from django.http.response import JsonResponse, HttpResponseRedirectBase, HttpResponseBase
+from django.http.response import JsonResponse, HttpResponseRedirectBase, HttpResponseBase, HttpResponseBadRequest
 from django.views.generic import UpdateView
 
 
@@ -30,11 +30,12 @@ class ModelPermissionMixin:
         return object
 
 
-class DeleteMixin:
+class ObjectDeletionMixin:
 
-    def delete_object(self, *args, **kwargs):
+    def delete_object(self):
         self.object = self.get_object()
         self.object.delete()
+        return JsonResponse({}, status=204)
 
 
 class SkipConfigurationCheckMixin:
@@ -46,20 +47,23 @@ class SkipConfigurationCheckMixin:
         return '/'
 
 
-class ModelApiView(PutFormParseMixin, SkipConfigurationCheckMixin, UpdateView, DeleteMixin):
+class ModelApiView(PutFormParseMixin, SkipConfigurationCheckMixin, UpdateView, ObjectDeletionMixin):
 
     def get(self, *args, **kwargs):
-        self.object = self.get_object()
-        return self.render_to_response(self.get_context_data())
+        response = self.get_response(super().get(*args, **kwargs))
+        return response 
     
     def post(self, *args, **kwargs):
-        return self.get_response(super().post(*args, **kwargs))
+        response = self.get_response(super().post(*args, **kwargs))
+        return response 
 
     def put(self, *args, **kwargs):
-        return self.get_response(super().put(*args, **kwargs))
+        response = self.get_response(super().put(*args, **kwargs))
+        return response 
     
     def delete(self, *args, **kwargs):
-         return JsonResponse({})
+        response = self.get_response(super().delete_object())
+        return response 
     
     def get_response(self, response) -> HttpResponseBase:
         if isinstance(response, HttpResponseRedirectBase):

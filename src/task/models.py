@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 from .domain.entities import CategoryEntity, TaskEntity
+from task.validators import duration_validator
 
 
 class DomainQuerySet(models.QuerySet):
@@ -113,7 +114,8 @@ class Task(models.Model):
     planned_time = models.DurationField(
         null=False, 
         blank=False, 
-        verbose_name='Время, запланированное на процесс выполнения задачи'
+        verbose_name='Время, запланированное на процесс выполнения задачи',
+        validators=[duration_validator]
     )
 
     objects = DomainQuerySet.as_manager()
@@ -142,6 +144,4 @@ class Task(models.Model):
             deadline=self.deadline,
             planned_time=self.planned_time,
         )
-
-
 

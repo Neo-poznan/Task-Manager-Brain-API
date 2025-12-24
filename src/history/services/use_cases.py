@@ -1,17 +1,30 @@
 import random
-import json
+from datetime import timedelta
 from typing import Union, NoReturn
-
 from abc import ABC, abstractmethod
 from decimal import Decimal
-from dataclasses import dataclass
 
+from django.db import transaction
+
+from task.helpers.date import is_out_of_deadline
+from task.infrastructure.database_repository import TaskDatabaseRepositoryInterface
 from user.domain.entities import UserEntity
 from ..infrastructure.database_repository import HistoryDatabaseRepositoryInterface
 from ..domain.entities import SharedHistoryEntity
+from ..constants.choices import HistoryTaskStatusChoices
 
 
 class HistoryUseCaseInterface(ABC):
+
+    @abstractmethod
+    def move_task_to_history(
+        self, 
+        user: UserEntity, 
+        task_id: int, 
+        execution_time: timedelta,
+        successful: str
+    ) -> Union[None, NoReturn]:
+        pass
 
     @abstractmethod
     def save_user_shared_history(
@@ -58,9 +71,34 @@ class HistoryUseCase(HistoryUseCaseInterface):
 
     def __init__(
                 self, 
-                history_database_repository: HistoryDatabaseRepositoryInterface
+                history_database_repository: HistoryDatabaseRepositoryInterface,
+                task_database_repository: TaskDatabaseRepositoryInterface = None,
             ) -> None:
         self._history_database_repository = history_database_repository
+        self._task_database_repository = task_database_repository
+
+    @transaction.atomic
+    def move_task_to_history(
+            self, 
+            user: UserEntity, 
+            task_id: int, 
+            execution_time: timedelta,
+            successful: str
+        ) -> Union[None, NoReturn]:
+        task = self._task_database_repository.get_task_by_id(task_id)
+        if task.user_id != user.id:
+            raise PermissionError()
+        status: str
+
+        if successful == 'false':
+            status = HistoryTaskStatusChoices.FAILED
+        elif is_out_of_deadline(task.deadline):
+            status = HistoryTaskStatusChoices.OUT_OF_DEADLINE
+        elif successful == 'true':
+            status = HistoryTaskStatusChoices.SUCCESSFUL
+
+        self._task_database_repository.delete_task(task)
+        self._history_database_repository.save_task_to_history(task, execution_time, status)
 
     def save_user_shared_history(
                 self, 

@@ -2,8 +2,10 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 from task.models import Category, DomainQuerySet
+from task.validators import duration_validator
 from user.models import User
 from .domain.entities import HistoryEntity, SharedHistoryEntity
+from .constants.choices import HistoryTaskStatusChoices
 
 
 class History(models.Model):
@@ -13,17 +15,6 @@ class History(models.Model):
         verbose_name = '''
             История выполненных и проваленных задач. Одна строка - одна задача.
         '''
-
-
-    SUCCESSFUL = 'SUCCESSFUL'
-    OUT_OF_DEADLINE = 'OUT_OF_DEADLINE'
-    FAILED = 'FAILED'
-
-    STATUS_CHOICES = (
-        (SUCCESSFUL, 'Успешно выполнена вовремя'),
-        (OUT_OF_DEADLINE, 'Выполнена с опозданием'),
-        (FAILED, 'Провалена'),
-    )
 
     name = models.CharField(
             max_length=290, 
@@ -48,12 +39,14 @@ class History(models.Model):
     planned_time = models.DurationField(
             null=False, 
             blank=False, 
-            verbose_name='Время, которое было изначально запланировано на процесс выполнения задачи'
+            verbose_name='Время, которое было изначально запланировано на процесс выполнения задачи',
+            validators=[duration_validator],
         )
     execution_time = models.DurationField(
             null=False, 
             blank=False, 
-            verbose_name='Время, которое реально потребовалось на выполнение задачи'
+            verbose_name='Время, которое реально потребовалось на выполнение задачи',
+            validators=[duration_validator],
         )
     execution_date = models.DateField(
             null=False, 
@@ -65,7 +58,7 @@ class History(models.Model):
             max_length=50, 
             null=False,
             blank=False, 
-            choices=STATUS_CHOICES, 
+            choices=HistoryTaskStatusChoices.choices, 
             verbose_name='Статус, к примеру, была задача выполнена или провалена'
         )
 

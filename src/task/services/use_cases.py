@@ -68,26 +68,14 @@ class TaskUseCaseInterface(ABC):
             ) -> list[CategoryEntity]:
         pass
 
-    @abstractmethod
-    def save_task_to_history(
-                self, 
-                user: UserEntity, 
-                task_id: int, 
-                execution_time: timedelta,
-                successful: bool,
-            ) -> None:
-        pass
-
 
 class TaskUseCase(TaskUseCaseInterface):
     def __init__(
                 self, task_database_repository: TaskDatabaseRepositoryInterface = None,
-                category_database_repository: CategoryDatabaseRepositoryInterface = None,
-                history_database_repository: HistoryDatabaseRepositoryInterface = None
+                category_database_repository: CategoryDatabaseRepositoryInterface = None
             ):
         self._task_database_repository = task_database_repository
         self._category_database_repository = category_database_repository
-        self._history_database_repository = history_database_repository
 
     def get_ordered_user_tasks(self, user: UserEntity) -> list[TaskEntity]:
         return self._task_database_repository.get_ordered_user_tasks_json(user)
@@ -149,21 +137,4 @@ class TaskUseCase(TaskUseCaseInterface):
 
     def get_ordered_user_categories(self, user: UserEntity) -> list[CategoryEntity]:
         return self._category_database_repository.get_ordered_user_categories_json(user)
-
-    def save_task_to_history(
-                self, 
-                user: UserEntity, 
-                task_id: int, 
-                execution_time: timedelta,
-                successful: str
-            ) -> None:
-        task = self._task_database_repository.get_task_by_id(task_id)
-        if task.user_id != user.id:
-            raise PermissionError()
-        if successful == 'false':
-            self._history_database_repository.save_task_to_history_as_failed(task.id, execution_time)
-        elif is_out_of_deadline(task.deadline):
-            self._history_database_repository.save_task_to_history_as_outed_of_deadline(task.id, execution_time)
-        elif successful == 'true':
-            self._history_database_repository.save_task_to_history_as_successful(task.id, execution_time)
 

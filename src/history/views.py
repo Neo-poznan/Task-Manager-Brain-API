@@ -6,12 +6,47 @@ from django.utils.datastructures import MultiValueDictKeyError
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponseForbidden, HttpResponseNotFound
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
+from task.infrastructure.database_repository import TaskDatabaseRepository
 from task.models import Task
 from history.models import History, SharedHistory
 from core.mixins import UserEntityMixin, ApiLoginRequiredMixin
 from .services.use_cases import HistoryUseCase
 from .infrastructure.database_repository import HistoryDatabaseRepository
 from .validators import history_query_params_validator, history_dates_interval_validator
+
+
+class MoveTaskToHistoryView(
+            ApiLoginRequiredMixin, 
+            UserEntityMixin, 
+            View,
+        ):
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except PermissionError:
+            return HttpResponseForbidden(
+                '<h1>400 Forbidden</h1><p>Вы пытаетесь удалить задачу другого пользователя</p>'
+            )
+        except ValidationError as error:
+            return JsonResponse({'context': error.messages}, status=400)
+
+    def post(self, request, task_id: int):
+        use_case = HistoryUseCase(
+            task_database_repository=TaskDatabaseRepository(Task, connection),
+            history_database_repository=HistoryDatabaseRepository(
+                History, 
+                SharedHistory, 
+                connection,
+            )
+        )
+        use_case.move_task_to_history(
+            self.get_user_entity(), 
+            task_id,
+            self.request.POST['execution_time'],
+            successful=self.request.POST['successful'],
+        )
+        return JsonResponse({}, status=201)
 
 
 class HistoryView(
@@ -21,7 +56,6 @@ class HistoryView(
     ) :
     use_case = HistoryUseCase(
             HistoryDatabaseRepository(
-                Task, 
                 History, 
                 SharedHistory, 
                 connection
@@ -62,7 +96,6 @@ class HistoryView(
 class ShareHistoryView(UserEntityMixin, View):
     use_case = HistoryUseCase(
             HistoryDatabaseRepository(
-                Task, 
                 History, 
                 SharedHistory, 
                 connection
@@ -117,7 +150,6 @@ class GetUserSharedHistories(
     template_name = 'history/user_shared_histories.html'
     context_object_name = 'histories'
     use_case = HistoryUseCase(HistoryDatabaseRepository(
-            Task, 
             History, 
             SharedHistory, 
             connection
@@ -135,7 +167,6 @@ class SharedHistoryDeletionView(
         ):
     use_case = HistoryUseCase(
         HistoryDatabaseRepository(
-            Task, 
             History, 
             SharedHistory, 
             connection
@@ -176,7 +207,6 @@ class HistoryDeletionView(
         ):
     use_case = HistoryUseCase(
             HistoryDatabaseRepository(
-                Task, 
                 History, 
                 SharedHistory, 
                 connection
