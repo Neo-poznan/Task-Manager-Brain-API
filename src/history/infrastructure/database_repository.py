@@ -5,7 +5,7 @@ from typing import Type, Union, NoReturn
 
 from django.utils.connection import ConnectionProxy
 
-from task.domain.entities import TaskEntity
+from task.domain import TaskEntity
 
 from ..models import History, SharedHistory
 from user.models import User

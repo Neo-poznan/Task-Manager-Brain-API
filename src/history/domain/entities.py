@@ -1,18 +1,14 @@
-from datetime import date
 from dataclasses import dataclass
 
 from datetime import timedelta, date
-
-from task.domain.entities import CategoryEntity
-from user.domain.entities import UserEntity
 
 
 @dataclass
 class HistoryEntity:
     id: int
     name: str
-    category: CategoryEntity
-    user: UserEntity
+    category_id: int
+    user_id: int
     planned_time: timedelta
     execution_time: timedelta
     execution_date: date
@@ -34,9 +30,8 @@ class IncompleteHistoryEntity:
 @dataclass
 class SharedHistoryEntity:
     key: int
-    user: UserEntity
+    user_id: int
     from_date: date
     to_date: date
     history_statistics: dict
-
 

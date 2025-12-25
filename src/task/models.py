@@ -2,7 +2,7 @@ from django.db import models
 
 from django.contrib.auth import get_user_model
 
-from .domain.entities import CategoryEntity, TaskEntity
+from .domain import CategoryEntity, TaskEntity
 from task.validators import duration_validator
 
 

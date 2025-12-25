@@ -11,7 +11,7 @@ from .forms import UserRegistrationForm, UserLoginForm, UserProfileForm, UserPas
 from core.mixins import ApiLoginRequiredMixin
 from core.http import FormJsonResponse
 
-from task.views import ModelApiView
+from core.views import ModelApiView
 
 
 @ensure_csrf_cookie

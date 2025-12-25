@@ -6,7 +6,7 @@ from django.utils.datastructures import MultiValueDictKeyError
 from django.http import HttpResponseBadRequest, JsonResponse, HttpResponseForbidden, HttpResponseNotFound
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 
-from task.infrastructure.database_repository import TaskDatabaseRepository
+from task.infrastructure import TaskRepository
 from task.models import Task
 from history.models import History, SharedHistory
 from core.mixins import UserEntityMixin, ApiLoginRequiredMixin
@@ -33,7 +33,7 @@ class MoveTaskToHistoryView(
 
     def post(self, request, task_id: int):
         use_case = HistoryUseCase(
-            task_database_repository=TaskDatabaseRepository(Task, connection),
+            task_database_repository=TaskRepository(Task, connection),
             history_database_repository=HistoryDatabaseRepository(
                 History, 
                 SharedHistory, 

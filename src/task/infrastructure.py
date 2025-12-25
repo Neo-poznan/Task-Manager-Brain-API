@@ -4,13 +4,12 @@ from typing import Union, Type
 
 from django.utils.connection import ConnectionProxy
 
-from ..models import Category, Task
-from user.models import User
+from .models import Category, Task
 from user.domain.entities import UserEntity
-from ..domain.entities import TaskEntity, CategoryEntity
+from .domain import TaskEntity, CategoryEntity
 
 
-class TaskDatabaseRepositoryInterface(ABC):
+class TaskRepositoryInterface(ABC):
     @abstractmethod
     def get_ordered_user_tasks_json(self, user: UserEntity) -> list[dict[str, Union[str, int]]]:
         pass
@@ -38,15 +37,6 @@ class TaskDatabaseRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def update_user_deadlines_by_date(
-                self,
-                user: UserEntity,
-                date: str,
-                tasks: list,
-            ):
-        pass
-
-    @abstractmethod
     def save_task(self, task: TaskEntity) -> None:
         pass
 
@@ -55,7 +45,7 @@ class TaskDatabaseRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def update_user_task_order(self, user: UserEntity, new_order: list[str]) -> None:
+    def update_user_tasks_order(self, user: UserEntity, new_order: list[str]) -> None:
         pass
 
     @abstractmethod
@@ -63,7 +53,7 @@ class TaskDatabaseRepositoryInterface(ABC):
         pass
 
 
-class CategoryDatabaseRepositoryInterface(ABC):
+class CategoryRepositoryInterface(ABC):
     @abstractmethod
     def get_category_by_id(self, category_id: int) -> CategoryEntity:
         pass   
@@ -80,7 +70,7 @@ class CategoryDatabaseRepositoryInterface(ABC):
         pass
 
 
-class TaskDatabaseRepository(TaskDatabaseRepositoryInterface):
+class TaskRepository(TaskRepositoryInterface):
     def __init__(self, model: Type[Task], connection: ConnectionProxy):
         self._model = model
         self._connection = connection
@@ -135,58 +125,38 @@ class TaskDatabaseRepository(TaskDatabaseRepositoryInterface):
         return cursor.fetchall()[0][0]
 
     def get_user_tasks_by_deadlines(
-                self, 
-                user: UserEntity
-            ) -> dict[str, list[dict[str, Union[str, int]]]]:
+            self, 
+            user: UserEntity
+        ) -> dict[str, list[dict[str, Union[str, int]]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
             SELECT json_object_agg(subquery.deadline, subquery.tasks) 
             FROM
             (
-                SELECT tt.deadline AS deadline, array_agg(json_build_object('id', tt.id, 'name', tt.name, 'color', tc.color)) AS tasks 
+                SELECT tt.deadline AS deadline, array_agg(
+                    json_build_object('id', tt.id, 'name', tt.name, 'color', tc.color)
+                ) AS tasks 
                 FROM task_task tt 
                 JOIN task_category tc ON tc.id = tt.category_id 
                 WHERE tt.user_id = %s AND tt.deadline IS NOT NULL
                 GROUP BY tt.deadline
             ) AS subquery;
-
             ''',
             [user.id]
         )
         return cursor.fetchall()[0][0]
-    
-    def update_user_deadlines_by_date(
-                self,
-                user: UserEntity,
-                date: str,
-                tasks: list,
-            ):
-        cursor = self._connection.cursor()
-        cursor.execute(
-            '''
-            WITH tasks_cte AS ( 
-                select task -> 'id' as id
-                from jsonb_array_elements(%s::jsonb) as task
-            )
-            UPDATE task_task tt
-            SET deadline = %s
-            FROM tasks_cte
-            WHERE tt.id = tasks_cte.id::int AND tt.user_id = %s;
-            ''',
-            [json.dumps(tasks), date, user.id]
-        )
 
     def save_task(self, task: TaskEntity) -> None:
         Task.from_domain(task).save()
 
-    def update_user_task_order(self, user: UserEntity, new_order: list[str]) -> None:
+    def update_user_tasks_order(self, user: UserEntity, new_order: list[str]) -> None:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
             WITH order_cte AS (
-                select order_array.id, order_array.new_order from
-                unnest(%s::int[]) with ordinality as order_array(id, new_order)
+                SELECT order_array.id, order_array.new_order FROM
+                unnest(%s::int[]) WITH ordinality AS order_array(id, new_order)
             )
             UPDATE task_task tt
             SET "order" = order_cte.new_order
@@ -212,7 +182,7 @@ class TaskDatabaseRepository(TaskDatabaseRepositoryInterface):
         self._model.from_domain(task).delete()
 
 
-class CategoryDatabaseRepository(CategoryDatabaseRepositoryInterface):
+class CategoryRepository(CategoryRepositoryInterface):
     def __init__(self, model: Type[Category], connection: ConnectionProxy):
         self._model = model
         self._connection = connection

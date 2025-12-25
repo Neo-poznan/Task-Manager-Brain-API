@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.db import transaction
 
 from task.helpers.date import is_out_of_deadline
-from task.infrastructure.database_repository import TaskDatabaseRepositoryInterface
+from task.infrastructure import TaskRepositoryInterface
 from user.domain.entities import UserEntity
 from ..infrastructure.database_repository import HistoryDatabaseRepositoryInterface
 from ..domain.entities import SharedHistoryEntity
@@ -72,7 +72,7 @@ class HistoryUseCase(HistoryUseCaseInterface):
     def __init__(
                 self, 
                 history_database_repository: HistoryDatabaseRepositoryInterface,
-                task_database_repository: TaskDatabaseRepositoryInterface = None,
+                task_database_repository: TaskRepositoryInterface = None,
             ) -> None:
         self._history_database_repository = history_database_repository
         self._task_database_repository = task_database_repository

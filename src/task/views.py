@@ -7,13 +7,13 @@ from django.http import HttpResponseForbidden, HttpResponse, JsonResponse, HttpR
 from django.db import connection
 from django.db.models import Q
 
-from .forms import TaskForm, CategoryCreationForm
-from .models import Task, Category
-from .services.use_cases import TaskUseCase
-from .infrastructure.database_repository import TaskDatabaseRepository, CategoryDatabaseRepository
 from core.http import FormJsonResponse
 from core.mixins import UserEntityMixin, ApiLoginRequiredMixin
 from core.views import ModelPermissionMixin, ModelApiView
+from .forms import TaskForm, CategoryCreationForm
+from .models import Task, Category
+from .services import TaskService, DeadlinesUpdateUseCase, TaskOrderUpdateUseCase
+from .infrastructure import TaskRepository, CategoryRepository
 
 
 class TasksView(
@@ -21,8 +21,8 @@ class TasksView(
         UserEntityMixin, 
         View,
     ):
-    use_case = TaskUseCase(
-        task_database_repository=TaskDatabaseRepository(
+    service = TaskService(
+        task_repository=TaskRepository(
         Task, 
         connection,
         )
@@ -30,10 +30,10 @@ class TasksView(
 
     def get(self, request):
         data = {}
-        data['chart_data'] = self.use_case.get_user_task_count_by_categories(
+        data['chart_data'] = self.service.get_user_task_count_by_categories(
             self.get_user_entity()
         )
-        data['tasks'] = self.use_case.get_ordered_user_tasks(
+        data['tasks'] = self.service.get_ordered_user_tasks(
             self.get_user_entity()
         )
         return JsonResponse(data)
@@ -45,40 +45,36 @@ class DeadlinesView(
         View,
     ):
 
-    use_case = TaskUseCase(
-        task_database_repository=TaskDatabaseRepository(
+    service = TaskService(
+        task_repository=TaskRepository(
             Task, 
             connection)
         )
 
     def get(self, request):
         data = {}
-        data['calendar_data'] = self.use_case.get_user_tasks_by_deadlines(
+        data['calendar_data'] = self.service.get_user_tasks_by_deadlines(
             self.get_user_entity()
         )
 
         return JsonResponse(data)
     
 
-class DeadlinesUpdateView(
-        ApiLoginRequiredMixin,
-        UserEntityMixin,
-        View,
-    ):
-
-        use_case = TaskUseCase(
-        task_database_repository=TaskDatabaseRepository(
+class DeadlinesUpdateView(ApiLoginRequiredMixin, UserEntityMixin, View):
+    use_case = DeadlinesUpdateUseCase(
+        task_repository=TaskRepository(
             Task, 
-            connection)
+            connection
         )
+    )
 
-        def post(self, request):
-            post_data = self.request.body.decode('utf-8')
-            post_data_json = json.loads(post_data)
+    def post(self, request):
+        post_data = self.request.body.decode('utf-8')
+        post_data_json = json.loads(post_data)
 
-            self.use_case.update_user_deadlines(self.get_user_entity(), post_data_json['new_deadlines'])
+        self.use_case.execute(self.get_user_entity(), post_data_json['new_deadlines'])
 
-            return JsonResponse({})
+        return JsonResponse({})
 
 
 class TaskView(
@@ -102,8 +98,8 @@ class TaskView(
     model = Task
     pk_url_kwarg = 'task_id'
 
-    use_case = TaskUseCase(
-        task_database_repository=TaskDatabaseRepository(
+    service = TaskService(
+        task_repository=TaskRepository(
             Task, connection
         )
     ) 
@@ -127,7 +123,7 @@ class TaskView(
 
     def form_valid(self, form):
         if not form.instance.order:
-            form.instance.order = self.use_case.get_next_task_order(
+            form.instance.order = self.service.get_next_task_order(
                 self.get_user_entity()
             )
         form.instance.user = self.request.user
@@ -168,16 +164,16 @@ class CategoriesView(
             View,
         ):
     template_name = 'task/categories.html'
-    use_case = TaskUseCase(
-        category_database_repository=CategoryDatabaseRepository(Category, connection),
+    service = TaskService(
+        category_repository=CategoryRepository(Category, connection),
     )
 
     def get(self, request):
-        categories = self.use_case.get_ordered_user_categories(
+        categories = self.service.get_ordered_user_categories(
                 self.get_user_entity()
             )
         return JsonResponse({'categories': categories})
-    
+
 
 class OrderUpdateView(
             ApiLoginRequiredMixin, 
@@ -193,13 +189,13 @@ class OrderUpdateView(
     def put(self, request):
         post_data = self.request.body.decode('utf-8')
         post_data_json = json.loads(post_data)
-        use_case = TaskUseCase(
-                task_database_repository=TaskDatabaseRepository(
+        use_case = TaskOrderUpdateUseCase(
+                task_repository=TaskRepository(
                         Task, 
                         connection,
                     )
             )
-        use_case.update_user_task_order(
+        use_case.execute(
                 self.get_user_entity(), post_data_json['order']
             )
         return HttpResponse('OK')
