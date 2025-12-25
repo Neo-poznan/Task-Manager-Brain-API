@@ -10,8 +10,8 @@ from task.infrastructure import TaskRepository
 from task.models import Task
 from history.models import History, SharedHistory
 from core.mixins import UserEntityMixin, ApiLoginRequiredMixin
-from .services.use_cases import HistoryUseCase
-from .infrastructure.database_repository import HistoryDatabaseRepository
+from .services import HistoryService, MoveTaskToHistoryUseCase
+from .infrastructure import HistoryRepository
 from .validators import history_query_params_validator, history_dates_interval_validator
 
 
@@ -32,15 +32,15 @@ class MoveTaskToHistoryView(
             return JsonResponse({'context': error.messages}, status=400)
 
     def post(self, request, task_id: int):
-        use_case = HistoryUseCase(
-            task_database_repository=TaskRepository(Task, connection),
-            history_database_repository=HistoryDatabaseRepository(
+        use_case = MoveTaskToHistoryUseCase(
+            task_repository=TaskRepository(Task, connection),
+            history_repository=HistoryRepository(
                 History, 
                 SharedHistory, 
                 connection,
             )
         )
-        use_case.move_task_to_history(
+        use_case.execute(
             self.get_user_entity(), 
             task_id,
             self.request.POST['execution_time'],
@@ -54,8 +54,8 @@ class HistoryView(
         UserEntityMixin, 
         View
     ) :
-    use_case = HistoryUseCase(
-            HistoryDatabaseRepository(
+    use_case = HistoryService(
+            HistoryRepository(
                 History, 
                 SharedHistory, 
                 connection
@@ -94,8 +94,8 @@ class HistoryView(
 
 
 class ShareHistoryView(UserEntityMixin, View):
-    use_case = HistoryUseCase(
-            HistoryDatabaseRepository(
+    use_case = HistoryService(
+            HistoryRepository(
                 History, 
                 SharedHistory, 
                 connection
@@ -149,7 +149,7 @@ class GetUserSharedHistories(
         ):
     template_name = 'history/user_shared_histories.html'
     context_object_name = 'histories'
-    use_case = HistoryUseCase(HistoryDatabaseRepository(
+    use_case = HistoryService(HistoryRepository(
             History, 
             SharedHistory, 
             connection
@@ -165,8 +165,8 @@ class SharedHistoryDeletionView(
             UserEntityMixin, 
             View
         ):
-    use_case = HistoryUseCase(
-        HistoryDatabaseRepository(
+    use_case = HistoryService(
+        HistoryRepository(
             History, 
             SharedHistory, 
             connection
@@ -205,8 +205,8 @@ class HistoryDeletionView(
             UserEntityMixin, 
             View
         ):
-    use_case = HistoryUseCase(
-            HistoryDatabaseRepository(
+    use_case = HistoryService(
+            HistoryRepository(
                 History, 
                 SharedHistory, 
                 connection

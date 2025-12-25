@@ -1,35 +1,25 @@
 import random
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Union, NoReturn
 from abc import ABC, abstractmethod
 from decimal import Decimal
 
 from django.db import transaction
 
-from task.helpers.date import is_out_of_deadline
 from task.infrastructure import TaskRepositoryInterface
-from user.domain.entities import UserEntity
-from ..infrastructure.database_repository import HistoryDatabaseRepositoryInterface
-from ..domain.entities import SharedHistoryEntity
-from ..constants.choices import HistoryTaskStatusChoices
+from task.domain import TaskEntityProtocol
+from user.domain.entities import UserEntityProtocol
+from .infrastructure import HistoryRepositoryInterface
+from .domain import HistoryEntity, SharedHistoryEntity
+from .constants.choices import HistoryTaskStatusChoices
 
 
-class HistoryUseCaseInterface(ABC):
-
-    @abstractmethod
-    def move_task_to_history(
-        self, 
-        user: UserEntity, 
-        task_id: int, 
-        execution_time: timedelta,
-        successful: str
-    ) -> Union[None, NoReturn]:
-        pass
+class HistoryServiceInterface(ABC):
 
     @abstractmethod
     def save_user_shared_history(
                 self, 
-                user: UserEntity, 
+                user: UserEntityProtocol, 
                 from_date: str, 
                 to_date: str
             ) -> str:
@@ -42,7 +32,7 @@ class HistoryUseCaseInterface(ABC):
     @abstractmethod
     def get_user_shared_histories(
                 self, 
-                user: UserEntity
+                user: UserEntityProtocol
             ) -> list[SharedHistoryEntity]:
         pass
 
@@ -50,7 +40,7 @@ class HistoryUseCaseInterface(ABC):
     def delete_user_shared_history_by_key(
                 self, 
                 history_id: int, 
-                user: UserEntity
+                user: UserEntityProtocol
             ) -> SharedHistoryEntity:
         pass
 
@@ -58,51 +48,40 @@ class HistoryUseCaseInterface(ABC):
     def delete_user_history_by_id(
                 self, 
                 history_id: int,
-                user: UserEntity
+                user: UserEntityProtocol
             ) -> Union[None, NoReturn]:
         pass
 
     @abstractmethod
-    def get_user_history_statistics(self, user: UserEntity) -> dict:
+    def get_user_history_statistics(self, user: UserEntityProtocol) -> dict:
         pass
 
 
-class HistoryUseCase(HistoryUseCaseInterface):
+class MoveTaskToHistoryUseCaseInterface(ABC):
 
-    def __init__(
-                self, 
-                history_database_repository: HistoryDatabaseRepositoryInterface,
-                task_database_repository: TaskRepositoryInterface = None,
-            ) -> None:
-        self._history_database_repository = history_database_repository
-        self._task_database_repository = task_database_repository
-
-    @transaction.atomic
-    def move_task_to_history(
+    @abstractmethod
+    def execute(
             self, 
-            user: UserEntity, 
+            user: UserEntityProtocol, 
             task_id: int, 
             execution_time: timedelta,
-            successful: str
         ) -> Union[None, NoReturn]:
-        task = self._task_database_repository.get_task_by_id(task_id)
-        if task.user_id != user.id:
-            raise PermissionError()
-        status: str
+        pass
 
-        if successful == 'false':
-            status = HistoryTaskStatusChoices.FAILED
-        elif is_out_of_deadline(task.deadline):
-            status = HistoryTaskStatusChoices.OUT_OF_DEADLINE
-        elif successful == 'true':
-            status = HistoryTaskStatusChoices.SUCCESSFUL
 
-        self._task_database_repository.delete_task(task)
-        self._history_database_repository.save_task_to_history(task, execution_time, status)
+class HistoryService(HistoryServiceInterface):
+
+    def __init__(
+            self, 
+            history_repository: HistoryRepositoryInterface,
+            task_repository: TaskRepositoryInterface = None,
+        ) -> None:
+        self._history_repository = history_repository
+        self._task_repository = task_repository
 
     def save_user_shared_history(
                 self, 
-                user: UserEntity, 
+                user: UserEntityProtocol, 
                 from_date: str, 
                 to_date: str
             ) -> str:
@@ -110,7 +89,7 @@ class HistoryUseCase(HistoryUseCaseInterface):
         user_history_statistics = self.get_user_history_statistics(
                 user, from_date, to_date
             )
-        self._history_database_repository.save_user_shared_history(
+        self._history_repository.save_user_shared_history(
                 key, user, user_history_statistics, from_date, to_date
             )
         return key
@@ -123,7 +102,7 @@ class HistoryUseCase(HistoryUseCaseInterface):
         return string
 
     def get_shared_history_by_key(self, key: str) -> dict:
-        saved_history_object = self._history_database_repository.get_shared_history_by_key(key)
+        saved_history_object = self._history_repository.get_shared_history_by_key(key)
         saved_history = saved_history_object.history_statistics
         history_metadata = {
             'from_date': saved_history_object.from_date,
@@ -135,62 +114,62 @@ class HistoryUseCase(HistoryUseCaseInterface):
 
     def get_user_shared_histories(
                 self, 
-                user: UserEntity
+                user: UserEntityProtocol
             ) -> list[SharedHistoryEntity]:
-        return self._history_database_repository.get_user_shared_histories(user)
+        return self._history_repository.get_user_shared_histories(user)
 
     def delete_user_shared_history_by_key(
                 self, 
                 history_id: int, 
-                user: UserEntity
+                user: UserEntityProtocol
             ) -> Union[None, NoReturn]:
-        history = self._history_database_repository.get_shared_history_by_key(history_id)
+        history = self._history_repository.get_shared_history_by_key(history_id)
         if history.user != user:
             raise PermissionError
-        self._history_database_repository.delete_shared_history(history)
+        self._history_repository.delete_shared_history(history)
 
     def delete_user_history_by_id(
                 self, 
                 history_id: int, 
-                user: UserEntity
+                user: UserEntityProtocol
             ) -> Union[None, NoReturn]:
-        history = self._history_database_repository.get_history_by_id(history_id)
+        history = self._history_repository.get_history_by_id(history_id)
         if history.user != user:
             raise PermissionError
-        self._history_database_repository.delete_history(history)   
+        self._history_repository.delete_history(history)   
 
     def get_user_history_statistics(
                 self, 
-                user: UserEntity, 
+                user: UserEntityProtocol, 
                 from_date: str, 
                 to_date: str
             ) -> dict:
-        raw_count_user_tasks_in_categories = self._history_database_repository.get_count_user_tasks_in_categories(
+        raw_count_user_tasks_in_categories = self._history_repository.get_count_user_tasks_in_categories(
                 user, from_date, to_date
             )
-        raw_common_user_accuracy = self._history_database_repository.get_common_user_accuracy(
+        raw_common_user_accuracy = self._history_repository.get_common_user_accuracy(
                 user, from_date, to_date
             )
-        raw_user_accuracy_by_categories = self._history_database_repository.get_user_accuracy_by_categories(
+        raw_user_accuracy_by_categories = self._history_repository.get_user_accuracy_by_categories(
                 user, from_date, to_date
             )
-        raw_common_user_success_rate = self._history_database_repository.get_user_common_success_rate(
+        raw_common_user_success_rate = self._history_repository.get_user_common_success_rate(
                 user, from_date, to_date
             )
-        raw_user_success_rate_by_categories = self._history_database_repository.get_user_success_rate_by_categories(
+        raw_user_success_rate_by_categories = self._history_repository.get_user_success_rate_by_categories(
                 user, from_date, to_date
             )
-        raw_count_user_tasks_by_weekdays = self._history_database_repository.get_count_user_tasks_by_weekdays(
+        raw_count_user_tasks_by_weekdays = self._history_repository.get_count_user_tasks_by_weekdays(
                 user, from_date, to_date
             )   
-        raw_common_count_successful_planned_tasks = self._history_database_repository.get_common_count_user_successful_planned_tasks(
+        raw_common_count_successful_planned_tasks = self._history_repository.get_common_count_user_successful_planned_tasks(
                 user, from_date, to_date
             )
-        raw_count_successful_planned_tasks_by_categories = self._history_database_repository.get_count_user_successful_planned_tasks_by_categories(
+        raw_count_successful_planned_tasks_by_categories = self._history_repository.get_count_user_successful_planned_tasks_by_categories(
                 user, from_date, to_date
             )
 
-        history = self._history_database_repository.get_user_history(
+        history = self._history_repository.get_user_history(
                 user, from_date, to_date
             )
 
@@ -332,4 +311,60 @@ class HistoryUseCase(HistoryUseCaseInterface):
             count_successful_planned_tasks_by_categories['colors'].append(row[1])
             count_successful_planned_tasks_by_categories['data'].append(row[2]) 
         return count_successful_planned_tasks_by_categories
+    
+
+class MoveTaskToHistoryUseCase(MoveTaskToHistoryUseCaseInterface):
+
+    def __init__(
+            self, 
+            history_repository: HistoryRepositoryInterface,
+            task_repository: TaskRepositoryInterface,
+        ):
+        self._history_repository = history_repository
+        self._task_repository = task_repository
+        
+    @transaction.atomic
+    def execute(
+            self, 
+            user: UserEntityProtocol, 
+            task_id: int, 
+            execution_time: timedelta,
+            successful: str
+        ) -> Union[None, NoReturn]:
+    
+        task = self._task_repository.get_task_by_id(task_id)
+        self._user_task_owner(user, task)
+        status = self._get_history_task_status(task, successful)
+
+        history_task = HistoryEntity.from_task(
+                task, 
+                execution_time, 
+                status
+            )
+        self._task_repository.delete_task(task)
+        self._history_repository.save_history(history_task)
+
+    def _user_task_owner(self, user: UserEntityProtocol, task: TaskEntityProtocol) -> Union[None, NoReturn]:
+        if not task.user_id == user.id:
+            raise PermissionError
+
+    def _get_history_task_status(
+            self, 
+            task: TaskEntityProtocol, 
+            successful: str
+        ) -> str:
+        if successful == 'false':
+            return HistoryTaskStatusChoices.FAILED
+        elif successful == 'true' and self._is_out_of_deadline(task.deadline):
+            return HistoryTaskStatusChoices.OUT_OF_DEADLINE
+        elif successful == 'true':
+            return HistoryTaskStatusChoices.SUCCESSFUL
+        else:
+            raise TypeError('Status is incorrect!')
+
+    def _is_out_of_deadline(self, deadline: date) -> bool:
+        now = date.today()
+        if deadline and deadline < now:
+            return True
+        return False
 

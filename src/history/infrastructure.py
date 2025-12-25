@@ -5,22 +5,18 @@ from typing import Type, Union, NoReturn
 
 from django.utils.connection import ConnectionProxy
 
-from task.domain import TaskEntity
-
-from ..models import History, SharedHistory
+from .models import History, SharedHistory
 from user.models import User
 from user.domain.entities import UserEntity
-from ..domain.entities import SharedHistoryEntity, HistoryEntity
+from .domain import SharedHistoryEntity, HistoryEntity
 
 
-class HistoryDatabaseRepositoryInterface(ABC):
+class HistoryRepositoryInterface(ABC):
 
     @abstractmethod
-    def save_task_to_history(
+    def save_history(
             self, 
-            task_id: int, 
-            execution_time: timedelta,
-            status: str
+            history_task_entity: HistoryEntity, 
         ) -> Union[None, NoReturn]:
         pass
 
@@ -130,7 +126,7 @@ class HistoryDatabaseRepositoryInterface(ABC):
         pass
 
 
-class HistoryDatabaseRepository(HistoryDatabaseRepositoryInterface):
+class HistoryRepository(HistoryRepositoryInterface):
 
     def __init__(
                 self, 
@@ -142,22 +138,13 @@ class HistoryDatabaseRepository(HistoryDatabaseRepositoryInterface):
         self._shared_history_model = shared_history_model
         self._connection = connection
 
-    def save_task_to_history(
-                self, 
-                task: TaskEntity, 
-                execution_time: timedelta,
-                status: str
-            ) -> Union[None, NoReturn]:
-        history = self._history_model(
-            name=task.name,
-            category_id=task.category_id,
-            user_id=task.user_id,
-            planned_time=task.planned_time,
-            execution_time=execution_time,
-            status=status,
-        )
-        history.full_clean()
-        history.save()
+    def save_history(
+            self, 
+            history_task_entity: HistoryEntity, 
+        ) -> Union[None, NoReturn]:
+        history_task = self._history_model.from_domain(history_task_entity)
+        history_task.full_clean()
+        history_task.save()
 
     def save_user_shared_history(
                 self, 

@@ -1,10 +1,9 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 
-from task.models import Category, DomainQuerySet
+from task.models import DomainQuerySet
 from task.validators import duration_validator
-from user.models import User
-from .domain.entities import HistoryEntity, SharedHistoryEntity
+from .domain import HistoryEntity, SharedHistoryEntity
 from .constants.choices import HistoryTaskStatusChoices
 
 
@@ -16,6 +15,7 @@ class History(models.Model):
             История выполненных и проваленных задач. Одна строка - одна задача.
         '''
 
+
     name = models.CharField(
             max_length=290, 
             null=False, 
@@ -23,7 +23,7 @@ class History(models.Model):
             verbose_name='Название задачи'
         )
     category = models.ForeignKey(
-            to=Category,
+            to='task.Category',
             on_delete=models.SET_NULL,
             null=True, 
             blank=True, 
@@ -69,8 +69,8 @@ class History(models.Model):
         return cls(
             id=entity.id,
             name=entity.name,
-            user=User.from_domain(entity.user),
-            category=Category.from_domain(entity.category),
+            user_id=entity.user_id,
+            category_id=entity.category_id,
             planned_time=entity.planned_time,
             execution_time=entity.execution_time,
             execution_date=entity.execution_date,
@@ -81,8 +81,8 @@ class History(models.Model):
         return HistoryEntity(
             id=self.id,
             name=self.name,
-            user=self.user.to_domain(),
-            category=self.category.to_domain() if self.category else None,
+            user_id=self.user.id,
+            category_id=self.category.id if self.category else None,
             planned_time=self.planned_time,
             execution_time=self.execution_time,
             execution_date=self.execution_date,
@@ -134,7 +134,7 @@ class SharedHistory(models.Model):
     def from_domain(cls, entity: SharedHistoryEntity):
         return cls(
             key=entity.key,
-            user=User.from_domain(entity.user),
+            user_id=entity.user_id,
             from_date=entity.from_date,
             to_date=entity.to_date,
             history_statistics=entity.history_statistics
@@ -143,7 +143,7 @@ class SharedHistory(models.Model):
     def to_domain(self):
         return SharedHistoryEntity(
             key=self.key,
-            user=self.user.to_incomplete_domain(),
+            user_id=self.user.id,
             from_date=self.from_date,
             to_date=self.to_date,
             history_statistics=self.history_statistics

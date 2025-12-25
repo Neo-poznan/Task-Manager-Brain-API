@@ -190,11 +190,11 @@ class OrderUpdateView(
         post_data = self.request.body.decode('utf-8')
         post_data_json = json.loads(post_data)
         use_case = TaskOrderUpdateUseCase(
-                task_repository=TaskRepository(
-                        Task, 
-                        connection,
-                    )
+            task_repository=TaskRepository(
+                    Task, 
+                    connection,
             )
+        )
         use_case.execute(
                 self.get_user_entity(), post_data_json['order']
             )

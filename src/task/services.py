@@ -1,25 +1,25 @@
 from abc import ABC, abstractmethod
-from typing import Union, NoReturn, Optional
+from typing import Union, NoReturn
 
 from .infrastructure import TaskRepositoryInterface, CategoryRepositoryInterface
-from user.domain.entities import UserEntity
-from .domain import TaskEntity, CategoryEntity
+from user.domain.entities import UserEntityProtocol
+from .domain import TaskEntityProtocol, CategoryEntityProtocol
 
 
 class TaskServiceInterface(ABC):
 
     @abstractmethod
-    def get_ordered_user_tasks(self, user: UserEntity) -> list[TaskEntity]:
+    def get_ordered_user_tasks(self, user: UserEntityProtocol) -> list[TaskEntityProtocol]:
         pass
 
     @abstractmethod
-    def get_user_task_count_by_categories(self, user: UserEntity) -> dict[str, list]:
+    def get_user_task_count_by_categories(self, user: UserEntityProtocol) -> dict[str, list]:
         pass
 
     @abstractmethod
     def get_user_tasks_by_deadlines(
             self, 
-            user: UserEntity
+            user: UserEntityProtocol
         ) -> dict[str, list]:
         pass
 
@@ -27,27 +27,27 @@ class TaskServiceInterface(ABC):
     def get_user_task_by_id(
             self, 
             task_id: int, 
-            user: UserEntity
-        ) -> Union[TaskEntity, NoReturn]:
+            user: UserEntityProtocol
+        ) -> Union[TaskEntityProtocol, NoReturn]:
         pass
 
     @abstractmethod
-    def get_next_task_order(self, user: UserEntity) -> int:
+    def get_next_task_order(self, user: UserEntityProtocol) -> int:
         pass
 
     @abstractmethod
     def get_user_category_by_id(
                 self, 
                 category_id: int, 
-                user: UserEntity
-            ) -> Union[CategoryEntity, NoReturn]:
+                user: UserEntityProtocol
+            ) -> Union[CategoryEntityProtocol, NoReturn]:
         pass
 
     @abstractmethod
     def get_ordered_user_categories(
                 self, 
-                user: UserEntity
-            ) -> list[CategoryEntity]:
+                user: UserEntityProtocol
+            ) -> list[CategoryEntityProtocol]:
         pass
 
 
@@ -56,7 +56,7 @@ class DeadlinesUpdateUseCaseInterface(ABC):
     @abstractmethod
     def execute(
             self,
-            user: UserEntity,
+            user: UserEntityProtocol,
             new_deadlines: dict[str, list]
         ) -> None:
         pass
@@ -67,7 +67,7 @@ class TaskOrderUpdateUseCaseInterface(ABC):
     @abstractmethod
     def execute(
             self, 
-            user: UserEntity, 
+            user: UserEntityProtocol, 
             new_order: list[str]
         ) -> None:
         pass
@@ -81,19 +81,19 @@ class TaskService(TaskServiceInterface):
         self._task_repository = task_repository
         self._category_repository = category_repository
 
-    def get_ordered_user_tasks(self, user: UserEntity) -> list[TaskEntity]:
+    def get_ordered_user_tasks(self, user: UserEntityProtocol) -> list[TaskEntityProtocol]:
         return self._task_repository.get_ordered_user_tasks_json(user)
 
     def get_user_task_count_by_categories(
                 self, 
-                user: UserEntity
+                user: UserEntityProtocol
             ) -> dict[str, Union[list[int], list[str]]]:
         task_count_statistics = self._task_repository.get_count_user_tasks_in_categories(user)
         return task_count_statistics
 
     def get_user_tasks_by_deadlines(
                 self, 
-                user: UserEntity
+                user: UserEntityProtocol
             ) -> dict[str, list[dict[str, Union[int, str]]]]:
         count_user_tasks_in_categories_by_deadlines = self._task_repository.get_user_tasks_by_deadlines(user)
         return count_user_tasks_in_categories_by_deadlines
@@ -101,28 +101,28 @@ class TaskService(TaskServiceInterface):
     def get_user_task_by_id(
                 self,
                 task_id: int, 
-                user: UserEntity
-            ) -> Union[TaskEntity, NoReturn]:
+                user: UserEntityProtocol
+            ) -> Union[TaskEntityProtocol, NoReturn]:
         task = self._task_repository.get_task_by_id(task_id)
         if task.user == user:
             return task
         else:
             raise PermissionError
 
-    def get_next_task_order(self, user: UserEntity) -> int:
+    def get_next_task_order(self, user: UserEntityProtocol) -> int:
         return self._task_repository.get_next_task_order(user)
 
     def get_user_category_by_id(
                 self, 
                 category_id: int, 
-                user: UserEntity
-            ) -> Union[CategoryEntity, NoReturn]:
+                user: UserEntityProtocol
+            ) -> Union[CategoryEntityProtocol, NoReturn]:
         category = self._category_repository.get_category_by_id(category_id)
         if category.user != user:
             raise PermissionError
         return category
 
-    def get_ordered_user_categories(self, user: UserEntity) -> list[CategoryEntity]:
+    def get_ordered_user_categories(self, user: UserEntityProtocol) -> list[CategoryEntityProtocol]:
         return self._category_repository.get_ordered_user_categories_json(user)
     
 
@@ -132,7 +132,7 @@ class TaskOrderUpdateUseCase(TaskOrderUpdateUseCaseInterface):
 
     def execute(
             self, 
-            user: UserEntity, 
+            user: UserEntityProtocol, 
             new_order: list[str]
         ) -> None:
         user_tasks = self._task_repository.get_ordered_user_tasks(user)
@@ -143,7 +143,7 @@ class TaskOrderUpdateUseCase(TaskOrderUpdateUseCaseInterface):
         )
         self._task_repository.update_user_tasks_order(user, cleaned_new_order)
 
-    def _get_ids_of_existing_tasks(self, existing_tasks: list[TaskEntity]) -> list[str]:
+    def _get_ids_of_existing_tasks(self, existing_tasks: list[TaskEntityProtocol]) -> list[str]:
         return [str(task.id) for task in existing_tasks]
 
     def _delete_from_new_order_tasks_that_cannot_be_updated(
@@ -163,7 +163,7 @@ class DeadlinesUpdateUseCase(DeadlinesUpdateUseCaseInterface):
 
     def execute(
             self,
-            user: UserEntity,
+            user: UserEntityProtocol,
             new_deadlines: dict[str, list[dict[str, Union[int, str]]]]
         ) -> Union[None, NoReturn]:
 
@@ -176,22 +176,22 @@ class DeadlinesUpdateUseCase(DeadlinesUpdateUseCaseInterface):
 
     def _user_task_owner(
             self,
-            user: UserEntity,
-            task: TaskEntity,
+            user: UserEntityProtocol,
+            task: TaskEntityProtocol,
         ) -> Union[None, NoReturn]:
         if not task.user_id == user.id:
             raise PermissionError
 
     def _deadline_has_changed(
             self,
-            task: TaskEntity,
+            task: TaskEntityProtocol,
             new_deadline: str
         ) -> bool:
         return not str(task.deadline) == new_deadline
 
     def _update_deadline(
             self,
-            task: TaskEntity,
+            task: TaskEntityProtocol,
             new_deadline: str
         ) -> None:
         task.deadline = new_deadline
