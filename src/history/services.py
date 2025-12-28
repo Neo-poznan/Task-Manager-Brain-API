@@ -1,15 +1,16 @@
+from pprint import pprint
 import random
 from datetime import date, timedelta
-from typing import Union, NoReturn
+from typing import Iterable, Union, NoReturn
 from abc import ABC, abstractmethod
-from decimal import Decimal
+from copy import deepcopy
 
 from django.db import transaction
 
 from task.infrastructure import TaskRepositoryInterface
 from task.domain import TaskEntityProtocol
 from user.domain.entities import UserEntityProtocol
-from .infrastructure import HistoryRepositoryInterface
+from .infrastructure import HistoryRepositoryInterface, SharedHistoryRepositoryInterface
 from .domain import HistoryEntity, SharedHistoryEntity
 from .constants.choices import HistoryTaskStatusChoices
 
@@ -44,18 +45,6 @@ class HistoryServiceInterface(ABC):
             ) -> SharedHistoryEntity:
         pass
 
-    @abstractmethod
-    def delete_user_history_by_id(
-                self, 
-                history_id: int,
-                user: UserEntityProtocol
-            ) -> Union[None, NoReturn]:
-        pass
-
-    @abstractmethod
-    def get_user_history_statistics(self, user: UserEntityProtocol) -> dict:
-        pass
-
 
 class MoveTaskToHistoryUseCaseInterface(ABC):
 
@@ -69,27 +58,35 @@ class MoveTaskToHistoryUseCaseInterface(ABC):
         pass
 
 
+class GetUserHistoryUseCaseInterface(ABC):
+
+    @abstractmethod
+    def execute(
+            self, 
+            user: UserEntityProtocol, 
+            from_date: str, 
+            to_date: str
+        ) -> dict:
+        pass
+
+
 class HistoryService(HistoryServiceInterface):
 
     def __init__(
             self, 
-            history_repository: HistoryRepositoryInterface,
-            task_repository: TaskRepositoryInterface = None,
+            _shared_history_repository: SharedHistoryRepositoryInterface,
         ) -> None:
-        self._history_repository = history_repository
-        self._task_repository = task_repository
+        self._shared_history_repository = _shared_history_repository
 
     def save_user_shared_history(
                 self, 
                 user: UserEntityProtocol, 
+                user_history_statistics: dict,
                 from_date: str, 
                 to_date: str
             ) -> str:
         key = self._generate_random_string()
-        user_history_statistics = self.get_user_history_statistics(
-                user, from_date, to_date
-            )
-        self._history_repository.save_user_shared_history(
+        self._shared_history_repository.save_user_shared_history(
                 key, user, user_history_statistics, from_date, to_date
             )
         return key
@@ -102,7 +99,7 @@ class HistoryService(HistoryServiceInterface):
         return string
 
     def get_shared_history_by_key(self, key: str) -> dict:
-        saved_history_object = self._history_repository.get_shared_history_by_key(key)
+        saved_history_object = self._shared_history_repository.get_shared_history_by_key(key)
         saved_history = saved_history_object.history_statistics
         history_metadata = {
             'from_date': saved_history_object.from_date,
@@ -116,202 +113,118 @@ class HistoryService(HistoryServiceInterface):
                 self, 
                 user: UserEntityProtocol
             ) -> list[SharedHistoryEntity]:
-        return self._history_repository.get_user_shared_histories(user)
+        return self._shared_history_repository.get_user_shared_histories(user)
 
     def delete_user_shared_history_by_key(
                 self, 
                 history_id: int, 
                 user: UserEntityProtocol
             ) -> Union[None, NoReturn]:
-        history = self._history_repository.get_shared_history_by_key(history_id)
+        history = self._shared_history_repository.get_shared_history_by_key(history_id)
         if history.user != user:
             raise PermissionError
-        self._history_repository.delete_shared_history(history)
+        self._shared_history_repository.delete_shared_history(history)
 
-    def delete_user_history_by_id(
-                self, 
-                history_id: int, 
-                user: UserEntityProtocol
-            ) -> Union[None, NoReturn]:
-        history = self._history_repository.get_history_by_id(history_id)
-        if history.user != user:
-            raise PermissionError
-        self._history_repository.delete_history(history)   
 
-    def get_user_history_statistics(
+class GetUserHistoryUseCase(GetUserHistoryUseCaseInterface):
+
+    def __init__(
+            self, 
+            history_repository: HistoryRepositoryInterface,
+        ):
+        self._history_repository = history_repository
+
+    def execute(
                 self, 
                 user: UserEntityProtocol, 
                 from_date: str, 
                 to_date: str
             ) -> dict:
-        raw_count_user_tasks_in_categories = self._history_repository.get_count_user_tasks_in_categories(
+        count_tasks_in_categories = self._history_repository.get_count_tasks_in_categories(
                 user, from_date, to_date
             )
-        raw_common_user_accuracy = self._history_repository.get_common_user_accuracy(
+        common_accuracy = self._history_repository.get_common_accuracy(
                 user, from_date, to_date
             )
-        raw_user_accuracy_by_categories = self._history_repository.get_user_accuracy_by_categories(
+        accuracy_by_categories = self._history_repository.get_accuracy_by_categories(
                 user, from_date, to_date
             )
-        raw_common_user_success_rate = self._history_repository.get_user_common_success_rate(
+        common_success_rate = self._history_repository.get_common_success_rate(
                 user, from_date, to_date
             )
-        raw_user_success_rate_by_categories = self._history_repository.get_user_success_rate_by_categories(
+        success_rate_by_categories = self._history_repository.get_success_rate_by_categories(
                 user, from_date, to_date
             )
-        raw_count_user_tasks_by_weekdays = self._history_repository.get_count_user_tasks_by_weekdays(
+        count_tasks_by_weekdays = self._history_repository.get_count_tasks_by_weekdays(
                 user, from_date, to_date
             )   
-        raw_common_count_successful_planned_tasks = self._history_repository.get_common_count_user_successful_planned_tasks(
+        common_successful_planning_rate = self._history_repository.get_common_successful_planning_rate(
                 user, from_date, to_date
             )
-        raw_count_successful_planned_tasks_by_categories = self._history_repository.get_count_user_successful_planned_tasks_by_categories(
+        count_successful_planned_tasks_by_categories = self._history_repository.get_count_successful_planned_tasks_by_categories(
                 user, from_date, to_date
             )
 
-        history = self._history_repository.get_user_history(
+        history = self._history_repository.get_history(
                 user, from_date, to_date
             )
+        
+        common_successful_planning_rate = {'data': self._calculate_successful_planning_rate(common_successful_planning_rate[0], common_successful_planning_rate[1])}
+        common_success_rate = {'data': self._calculate_success_rate(common_success_rate[0], common_success_rate[1])}
+        common_accuracy = {'data': float(common_accuracy)}
 
         statistics = {
-            'count_user_tasks_in_categories': self._format_count_user_tasks_in_categories(
-                raw_count_user_tasks_in_categories
-            ),
-            'common_user_accuracy': self._format_common_user_accuracy(
-                raw_common_user_accuracy
-            ),
-            'user_accuracy_by_categories': self._format_user_accuracy_by_categories(
-                raw_user_accuracy_by_categories
-            ),
-            'common_user_success_rate': self._format_common_user_success_rate(
-                raw_common_user_success_rate
-            ),
-            'user_success_rate_by_categories':
-                self._format_user_success_rate_by_categories(
-                    raw_user_success_rate_by_categories
-                ),
-            'count_user_tasks_by_weekdays': self._format_count_user_tasks_by_weekdays(
-                raw_count_user_tasks_by_weekdays
-            ),
-            'common_count_user_successful_planned_tasks': self._format_common_count_user_successful_planned_tasks(
-                raw_common_count_successful_planned_tasks
-            ),
-            'count_user_successful_planned_tasks_by_categories': self._format_count_user_successful_planned_tasks_by_categories(
-                raw_count_successful_planned_tasks_by_categories
-            ),
-
+            'countUserTasksInCategories': count_tasks_in_categories,
+            'commonUserAccuracy': common_accuracy,
+            'userAccuracyByCategories': accuracy_by_categories, 
+            'commonUserSuccessRate': common_success_rate,
+            'userSuccessRateByCategories': success_rate_by_categories,
+            'countUserTasksByWeekdays': count_tasks_by_weekdays,
+            'commonUserSuccessfulPlanningRate': common_successful_planning_rate,
+            'countUserSuccessfulPlannedTasksByCategories': count_successful_planned_tasks_by_categories,
         }
+        cleaned_statistics = self._clean_statistics(statistics)
         return {
             'history': history,
-            'statistics': statistics
+            'statistics': cleaned_statistics
         }
-
-    def _format_count_user_tasks_in_categories(
-                self, 
-                raw_count_user_tasks_in_categories: list[tuple[str, int]]
-            ) -> dict[int, Union[list[int], list[str]]]:
-        count_user_tasks_in_categories = {
-                'labels': [], 'colors': [], 'data': []
-            }
-        for row in raw_count_user_tasks_in_categories:
-            count_user_tasks_in_categories['labels'].append(row[0])
-            count_user_tasks_in_categories['colors'].append(row[1])
-            count_user_tasks_in_categories['data'].append(row[2])
-        print(count_user_tasks_in_categories)
-        return count_user_tasks_in_categories
-
-    def _format_common_user_accuracy(
-                self, 
-                raw_common_user_accuracy: list[tuple[Decimal]]
-            ) -> dict[str, Union[list[str], list[float]]]:
-        try:
-            return {
-                    'labels': ['Точность', 'Точность'],
-                    'colors': ['rgba(0, 255, 0, 0.4)', 'rgba(255, 0, 0, 0.4)'],
-                    'data': [
-                        float(raw_common_user_accuracy[0][0]), 
-                        round(100.0 - float(raw_common_user_accuracy[0][0]), 2)
-                    ]
-                }
-        except TypeError:
-            return {}
-
-    def _format_user_accuracy_by_categories(
-                self, 
-                raw_user_accuracy_by_categories: list[tuple[str, Decimal]]
-            ) -> dict[str, Union[list[str], list[float]]]:
-        user_accuracy_by_categories = {'labels': [], 'colors': [], 'data': []}
-        for row in raw_user_accuracy_by_categories:
-            user_accuracy_by_categories['labels'].append(row[0])
-            user_accuracy_by_categories['colors'].append(row[1])
-            user_accuracy_by_categories['data'].append(float(row[2]))
-        return user_accuracy_by_categories
-
-    def _format_common_user_success_rate(
-                self, 
-                raw_common_user_success_rate: list[tuple[int]]
-            ) -> dict[str, Union[list[str], list[float]]]:
-        return {
-            'labels': ['Выполненные задачи', 'Проваленные задачи'],
-            'colors': ['rgba(0, 255, 0, 0.4)', 'rgba(255, 0, 0, 0.4)'],
-            'data': [
-                raw_common_user_success_rate[0][0], 
-                raw_common_user_success_rate[0][1]
-            ]
-        }
-
-    def _format_user_success_rate_by_categories(
-                self, 
-                raw_user_success_rate_by_categories: list[tuple[str, int]]
-            ) -> dict[str, Union[list[str], list[int]]]:
-        user_success_rate_by_categories = {
-                'labels': [], 'colors': [], 'data': []
-            }
-        for row in raw_user_success_rate_by_categories:
-            user_success_rate_by_categories['labels'].append(row[0])
-            user_success_rate_by_categories['colors'].append(row[1])
-            user_success_rate_by_categories['data'].append(row[2]) 
-        return user_success_rate_by_categories
-
-    def _format_count_user_tasks_by_weekdays(
-                self, 
-                raw_count_user_tasks_by_weekdays: list[tuple[str, int]]
-            ) -> dict[str, Union[list[str], list[int]]]:
-        count_user_tasks_by_weekdays = {'labels': [], 'data': []}
-        for row in raw_count_user_tasks_by_weekdays:
-            count_user_tasks_by_weekdays['labels'].append(row[0])
-            count_user_tasks_by_weekdays['data'].append(row[1]) 
-        return count_user_tasks_by_weekdays
-
-    def _format_common_count_user_successful_planned_tasks(
-                self, 
-                raw_common_count_successful_planned_tasks: list[tuple[int]]
-            ) -> dict[str, Union[list[str], list[int]]]:
-        return {
-            'labels': [
-                'Успешно запланированные задачи', 
-                'Неправильно запланированные задачи'
-            ],
-            'colors': ['rgba(0, 255, 0, 0.4)', 'rgba(255, 0, 0, 0.4)'],
-            'data': [
-                raw_common_count_successful_planned_tasks[0][0], 
-                raw_common_count_successful_planned_tasks[0][1]
-            ]
-        } 
-
-    def _format_count_user_successful_planned_tasks_by_categories(
-                self, 
-                raw_count_successful_planned_tasks_by_categories: list[tuple[str, int]]
-            ) -> dict[str, Union[list[str], list[int]]]:
-        count_successful_planned_tasks_by_categories = {
-                'labels': [], 'colors': [], 'data': []
-            }
-        for row in raw_count_successful_planned_tasks_by_categories:
-            count_successful_planned_tasks_by_categories['labels'].append(row[0])
-            count_successful_planned_tasks_by_categories['colors'].append(row[1])
-            count_successful_planned_tasks_by_categories['data'].append(row[2]) 
-        return count_successful_planned_tasks_by_categories
     
+    def _calculate_successful_planning_rate(
+            self,
+            successful_planned_tasks: int,
+            total_planned_tasks: int
+        ) -> float:
+        if total_planned_tasks == 0:
+            return 0.0
+        return round(successful_planned_tasks / total_planned_tasks * 100, 2)
+    
+    def _calculate_success_rate(
+            self,
+            successful_tasks: int,
+            total_tasks: int
+        ) -> float:
+        if total_tasks == 0:
+            return 0.0
+        return round(successful_tasks / total_tasks * 100, 2)
+
+    def _clean_statistics(self, statistics: dict) -> dict:
+        cleaned_statistics = deepcopy(statistics)
+        for key in statistics.keys():
+            if self._is_statistics_empty(statistics[key]):
+                del cleaned_statistics[key]
+        return cleaned_statistics
+    
+    def _is_statistics_empty(self, statistics: dict) -> bool:
+        values = statistics['data']
+        if not isinstance(values, Iterable):
+            values = [values]
+        if not values:
+            return True
+        if not any(values):
+            print('empty', values)
+            return True
+        return False
+
 
 class MoveTaskToHistoryUseCase(MoveTaskToHistoryUseCaseInterface):
 

@@ -10,7 +10,7 @@ from task.infrastructure import TaskRepository
 from task.models import Task
 from history.models import History, SharedHistory
 from core.mixins import UserEntityMixin, ApiLoginRequiredMixin
-from .services import HistoryService, MoveTaskToHistoryUseCase
+from .services import HistoryService, MoveTaskToHistoryUseCase, GetUserHistoryUseCase
 from .infrastructure import HistoryRepository
 from .validators import history_query_params_validator, history_dates_interval_validator
 
@@ -54,10 +54,9 @@ class HistoryView(
         UserEntityMixin, 
         View
     ) :
-    use_case = HistoryService(
+    use_case = GetUserHistoryUseCase(
             HistoryRepository(
                 History, 
-                SharedHistory, 
                 connection
             )
         )
@@ -85,7 +84,7 @@ class HistoryView(
             )        
 
 
-        context = self.use_case.get_user_history_statistics(
+        context = self.use_case.execute(
                 self.get_user_entity(), 
                 from_date, to_date
             )
@@ -96,7 +95,6 @@ class HistoryView(
 class ShareHistoryView(UserEntityMixin, View):
     use_case = HistoryService(
             HistoryRepository(
-                History, 
                 SharedHistory, 
                 connection
             )
@@ -150,7 +148,6 @@ class GetUserSharedHistories(
     template_name = 'history/user_shared_histories.html'
     context_object_name = 'histories'
     use_case = HistoryService(HistoryRepository(
-            History, 
             SharedHistory, 
             connection
             )
@@ -167,7 +164,6 @@ class SharedHistoryDeletionView(
         ):
     use_case = HistoryService(
         HistoryRepository(
-            History, 
             SharedHistory, 
             connection
             )
@@ -207,8 +203,7 @@ class HistoryDeletionView(
         ):
     use_case = HistoryService(
             HistoryRepository(
-                History, 
-                SharedHistory, 
+                SharedHistory,
                 connection
                 )
             )
