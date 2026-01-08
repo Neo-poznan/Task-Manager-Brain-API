@@ -14,5 +14,6 @@ urlpatterns = [
     path('category/', views.CategoryView.as_view()), 
     path('categories/', views.CategoriesView.as_view(), name='categories'),
     path('update-order/', views.OrderUpdateView.as_view(), name='order_update'),
+    path('today-statistics/', views.TodayTasksView.as_view(), name='today_tasks'),
 ]
 

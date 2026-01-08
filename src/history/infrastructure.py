@@ -5,8 +5,6 @@ from typing import Type, Union, NoReturn
 from django.utils.connection import ConnectionProxy
 
 from .models import History, SharedHistory
-from user.models import User
-from user.domain.entities import UserEntity
 from .domain import SharedHistoryEntity, HistoryEntity
 
 
@@ -14,79 +12,100 @@ class HistoryRepositoryInterface(ABC):
 
     @abstractmethod
     def get_history_by_id(
-                self, 
-                id: int
-            ) -> HistoryEntity:
+            self, 
+            id: int
+        ) -> HistoryEntity:
         pass
 
     @abstractmethod
     def delete_history(
-                self, 
-                history_entity: HistoryEntity
-            ) -> None:
+            self, 
+            history_entity: HistoryEntity
+        ) -> None:
         pass
 
     @abstractmethod
     def get_count_tasks_in_categories(
-                self,
-                user: UserEntity
-            ) -> dict[str, list[Union[str, int]]]:
+            self,
+            user_id: int
+        ) -> dict[str, list[Union[str, int]]]:
         pass
 
     @abstractmethod
     def get_common_accuracy(
-                self, 
-                user: UserEntity
-            ) -> tuple[Decimal]:
+            self, 
+            user_id: int
+        ) -> tuple[Decimal]:
         pass
 
     @abstractmethod
     def get_accuracy_by_categories(
-                self, 
-                user: UserEntity
-            ) -> dict[str, list[Union[str, Decimal]]]:
+            self, 
+            user_id: int
+        ) -> dict[str, list[Union[str, Decimal]]]:
         pass
 
     @abstractmethod
     def get_common_success_rate(
-                self, 
-                user: UserEntity
-            ) -> tuple[Decimal]:
+            self, 
+            user_id: int
+        ) -> tuple[Decimal]:
         pass
 
     @abstractmethod
     def get_success_rate_by_categories(
-                self, 
-                user: UserEntity
-            ) -> dict[str, list[Union[str, Decimal]]]:
+            self, 
+            user_id: int
+        ) -> dict[str, list[Union[str, Decimal]]]:
         pass
 
     @abstractmethod
     def get_count_tasks_by_weekdays(
-                self, 
-                user: UserEntity
-            ) -> dict[str, list[Union[str, int]]]:
+            self, 
+            user_id: int
+        ) -> dict[str, list[Union[str, int]]]:
         pass
 
     @abstractmethod
     def get_common_successful_planning_rate(
-                self, 
-                user: UserEntity
-            ) -> tuple[int]:
+            self, 
+            user_id: int
+        ) -> tuple[int]:
         pass
 
     @abstractmethod
     def get_count_successful_planned_tasks_by_categories(
             self, 
-            user: UserEntity
+            user_id: int
         ) -> dict[str, list[Union[str, int]]]:
         pass
 
     @abstractmethod
     def get_history(
-                self, 
-                user: UserEntity
-            ) -> list:
+            self, 
+            user_id: int
+        ) -> list:
+        pass
+
+    @abstractmethod
+    def get_count_user_tasks_in_categories_for_today(
+            self, 
+            user_id: int
+        ) -> list[dict[str, Union[str, int]]]:
+        pass
+
+    @abstractmethod
+    def get_user_tasks_for_today_json(
+            self, 
+            user_id: int
+        ) -> list[dict[str, Union[str, int]]]:
+        pass
+
+    @abstractmethod
+    def save_history(
+            self, 
+            history_task_entity: HistoryEntity, 
+        ) -> Union[None, NoReturn]:
         pass
 
 
@@ -101,42 +120,50 @@ class SharedHistoryRepositoryInterface(ABC):
 
     @abstractmethod
     def save_user_shared_history(
-                self, key: str, 
-                history_statistics: dict
-            ) -> None:
+            self, key: str, 
+            history_statistics: dict
+        ) -> None:
         pass
 
     @abstractmethod
     def get_shared_history_by_key(
-                self, 
-                key: str
-            ) -> SharedHistoryEntity:
+            self, 
+            key: str
+        ) -> SharedHistoryEntity:
         pass
 
     @abstractmethod
     def get_user_shared_histories(
-                self,
-                user_entity: UserEntity
-            ) -> list[SharedHistoryEntity]:
+            self,
+            user_id: int
+        ) -> list[SharedHistoryEntity]:
         pass
 
     @abstractmethod
     def delete_shared_history(
-                self, 
-                history_entity: HistoryEntity
-            ) -> None:
+            self, 
+            history_entity: HistoryEntity
+        ) -> None:
         pass
 
 
 class HistoryRepository(HistoryRepositoryInterface):
 
     def __init__(
-                self, 
-                history_model: Type[History], 
-                connection: ConnectionProxy
-            ) -> None:
+            self, 
+            history_model: Type[History], 
+            connection: ConnectionProxy
+        ) -> None:
         self._history_model = history_model
         self._connection = connection
+
+    def save_history(
+            self, 
+            history_task_entity: HistoryEntity, 
+        ) -> Union[None, NoReturn]:
+        history_task = self._history_model.from_domain(history_task_entity)
+        history_task.full_clean()
+        history_task.save()
 
     def get_history_by_id(self, id: int) -> HistoryEntity:
         return self._history_model.objects.get(id=id).to_domain()
@@ -145,11 +172,11 @@ class HistoryRepository(HistoryRepositoryInterface):
         self._history_model.from_domain(history_entity).delete()
 
     def get_count_tasks_in_categories(
-                self, 
-                user: UserEntity, 
-                from_date: str, 
-                to_date: str
-            ) ->dict[str, list[Union[str, int]]]:
+            self, 
+            user_id: int, 
+            from_date: str, 
+            to_date: str
+        ) ->dict[str, list[Union[str, int]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -169,15 +196,15 @@ class HistoryRepository(HistoryRepositoryInterface):
                 ORDER BY count(hh.id)
             ) AS subquery;
             ''',
-            [user.id, from_date, to_date]
+            [user_id, from_date, to_date]
         )
         return cursor.fetchall()[0][0]
     
     def get_common_accuracy(
-                self, user: UserEntity, 
-                from_date: str,
-                to_date: str
-            ) -> tuple[Decimal]:
+            self, user_id: int, 
+            from_date: str,
+            to_date: str
+        ) -> tuple[Decimal]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -200,15 +227,15 @@ class HistoryRepository(HistoryRepositoryInterface):
             AND
             execution_date BETWEEN %s AND %s;
             ''',
-            [user.id, from_date, to_date]
+            [user_id, from_date, to_date]
         )
         return cursor.fetchall()[0][0]
     def get_accuracy_by_categories(
-                self, 
-                user: UserEntity,
-                from_date: str, 
-                to_date: str
-            ) -> dict[str, list[Union[str, Decimal]]]:
+            self, 
+            user_id: int,
+            from_date: str, 
+            to_date: str
+        ) -> dict[str, list[Union[str, Decimal]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -243,16 +270,16 @@ class HistoryRepository(HistoryRepositoryInterface):
                 ORDER BY accuracy
             ) AS subquery;
             ''',
-            [user.id, from_date, to_date]
+            [user_id, from_date, to_date]
         )
         return cursor.fetchall()[0][0]
 
     def get_common_success_rate(
-                self,
-                user: UserEntity, 
-                from_date: str, 
-                to_date: str
-            ) -> tuple[Decimal]:
+            self,
+            user_id: int, 
+            from_date: str, 
+            to_date: str
+        ) -> tuple[Decimal]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -266,16 +293,16 @@ class HistoryRepository(HistoryRepositoryInterface):
             FROM history_history hh
             WHERE hh.user_id = %s AND execution_date BETWEEN %s AND %s;
             ''',
-            [user.id, from_date, to_date, user.id, from_date, to_date]
+            [user_id, from_date, to_date, user_id, from_date, to_date]
         )
         return cursor.fetchall()[0]
 
     def get_success_rate_by_categories(
-                self, 
-                user: UserEntity, 
-                from_date: str, 
-                to_date: str
-            ) -> dict[str, list[Union[str, float]]]:
+            self, 
+            user_id: int, 
+            from_date: str, 
+            to_date: str
+        ) -> dict[str, list[Union[str, float]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -305,15 +332,15 @@ class HistoryRepository(HistoryRepositoryInterface):
                 GROUP BY category_id, tc."name", tc.color
             ) AS subquery;
             ''',
-            [user.id, from_date, to_date, user.id, from_date, to_date]
+            [user_id, from_date, to_date, user_id, from_date, to_date]
         )
         return cursor.fetchall()[0][0]
     def get_count_tasks_by_weekdays(
-                self, 
-                user: UserEntity, 
-                from_date: str, 
-                to_date: str
-            ) -> dict[str, list[Union[str, int]]]:
+            self, 
+            user_id: int, 
+            from_date: str, 
+            to_date: str
+        ) -> dict[str, list[Union[str, int]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -340,16 +367,16 @@ class HistoryRepository(HistoryRepositoryInterface):
                 GROUP BY day_index, day_name
                 ORDER BY day_index) AS subquery;
             ''',
-            [user.id, from_date, to_date]
+            [user_id, from_date, to_date]
         )
         return cursor.fetchall()[0][0]
 
     def get_common_successful_planning_rate(
-                self,
-                user: UserEntity,
-                from_date: str,
-                to_date: str
-            ) -> tuple[int]:
+            self,
+            user_id: int,
+            from_date: str,
+            to_date: str
+        ) -> tuple[int]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -363,15 +390,15 @@ class HistoryRepository(HistoryRepositoryInterface):
             FROM history_history hh 
             WHERE hh.user_id = %s AND execution_date BETWEEN %s AND %s; 
             ''',
-            [user.id, from_date, to_date, user.id, from_date, to_date]
+            [user_id, from_date, to_date, user_id, from_date, to_date]
         )
         return cursor.fetchall()[0]
 
     def get_count_successful_planned_tasks_by_categories(
-                self, user: UserEntity, 
-                from_date: str, 
-                to_date: str
-            ) -> dict[str, list[Union[str, int]]]:
+            self, user_id: int, 
+            from_date: str, 
+            to_date: str
+        ) -> dict[str, list[Union[str, int]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -393,16 +420,16 @@ class HistoryRepository(HistoryRepositoryInterface):
                 GROUP BY hh.category_id, tc."name", tc.color
             ) AS subquery;
             ''',
-            [user.id, from_date, to_date]
+            [user_id, from_date, to_date]
         )
         return cursor.fetchall()[0][0]
 
     def get_history(
-                self, 
-                user: UserEntity, 
-                from_date: str, 
-                to_date: str
-            ) -> list:
+            self, 
+            user_id: int, 
+            from_date: str, 
+            to_date: str
+        ) -> list:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -412,18 +439,54 @@ class HistoryRepository(HistoryRepositoryInterface):
             execution_date BETWEEN %s AND %s
             ORDER BY hh.execution_date DESC;
             ''',
-            [user.id, from_date, to_date]
+            [user_id, from_date, to_date]
         )
         return [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
     
+    def get_count_user_tasks_in_categories_for_today(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+        cursor = self._connection.cursor()
+        cursor.execute(
+            '''
+            SELECT array_agg(
+                category_stats
+            ) FROM (
+                SELECT 
+                json_build_object('id', tc.id, 'name', tc.name, 'color', tc.color, 'taskCount', count(hh.id)) AS category_stats
+                FROM history_history hh
+                JOIN task_category tc
+                ON hh.category_id = tc.id
+                WHERE hh.user_id = %s AND hh.execution_date = CURRENT_DATE
+                GROUP BY tc.id
+            ) AS subquery;
+            ''',
+            [user_id]
+        )
+        return cursor.fetchall()[0][0]
+    
+    def get_user_tasks_for_today_json(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+        cursor = self._connection.cursor()
+        cursor.execute(
+            '''
+            SELECT array_agg(
+                json_build_object('id', hh.id, 'name', hh.name, 'color', tc.color)
+            )
+            FROM history_history hh
+            JOIN task_category tc ON tc.id = hh.category_id
+            WHERE hh.user_id = %s AND hh.execution_date = CURRENT_DATE
+            GROUP BY hh.user_id;
+            ''',
+            [user_id]
+        )
+        rows = cursor.fetchall()
+        return rows[0][0] if len(rows) > 0 else []
 
 class SharedHistoryRepository(SharedHistoryRepositoryInterface):
 
     def __init__(
-                self, 
-                shared_history_model: Type[SharedHistory], 
-                connection: ConnectionProxy
-            ) -> None:
+            self, 
+            shared_history_model: Type[SharedHistory], 
+            connection: ConnectionProxy
+        ) -> None:
         self._shared_history_model = shared_history_model
         self._connection = connection
 
@@ -436,16 +499,16 @@ class SharedHistoryRepository(SharedHistoryRepositoryInterface):
         history_task.save()
 
     def save_user_shared_history(
-                self, 
-                key: str, 
-                user: UserEntity, 
-                history_statistics: dict, 
-                from_date: str, 
-                to_date: str
-            ) -> None:
+            self, 
+            key: str, 
+            user_id: int, 
+            history_statistics: dict, 
+            from_date: str, 
+            to_date: str
+        ) -> None:
         self._shared_history_model.objects.create(
                 key=key, 
-                user=User.from_domain(user), 
+                user_id=user_id,
                 history_statistics=history_statistics, 
                 from_date=from_date, 
                 to_date=to_date
@@ -456,10 +519,10 @@ class SharedHistoryRepository(SharedHistoryRepositoryInterface):
 
     def get_user_shared_histories(
                 self, 
-                user: UserEntity
+                user_id: int
             ) -> list[SharedHistoryEntity]:
         return self._shared_history_model.objects.filter(
-                user=User.from_domain(user)
+                user_id=user_id
             ).only('key', 'from_date', 'to_date').to_entity_list()
     
     def delete_shared_history(self, history_entity: HistoryEntity) -> None:

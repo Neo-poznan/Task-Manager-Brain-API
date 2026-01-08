@@ -8,7 +8,7 @@ from django.db import connection
 from django.db.models import Q
 
 from core.http import FormJsonResponse
-from core.mixins import UserEntityMixin, ApiLoginRequiredMixin
+from core.mixins import ApiLoginRequiredMixin
 from core.views import ModelPermissionMixin, ModelApiView
 from .forms import TaskForm, CategoryCreationForm
 from .models import Task, Category
@@ -18,7 +18,6 @@ from .infrastructure import TaskRepository, CategoryRepository
 
 class TasksView(
         ApiLoginRequiredMixin, 
-        UserEntityMixin, 
         View,
     ):
     service = TaskService(
@@ -31,36 +30,56 @@ class TasksView(
     def get(self, request):
         data = {}
         data['chart_data'] = self.service.get_user_task_count_by_categories(
-            self.get_user_entity()
+            self.request.user.id
         )
         data['tasks'] = self.service.get_ordered_user_tasks(
-            self.get_user_entity()
+            self.request.user.id
         )
         return JsonResponse(data)
-    
+
+
+class TodayTasksView(
+        ApiLoginRequiredMixin,
+        View,
+    ):
+    service = TaskService(
+        task_repository=TaskRepository(
+            Task, 
+            connection
+        )
+    )
+
+    def get(self, request):
+        data = {}
+        data = self.service.get_user_statistics_for_today(
+            self.request.user.id
+        )
+
+        return JsonResponse(data)
+
 
 class DeadlinesView(
         ApiLoginRequiredMixin,
-        UserEntityMixin,
         View,
     ):
 
     service = TaskService(
-        task_repository=TaskRepository(
+    task_repository=TaskRepository(
             Task, 
-            connection)
+            connection
         )
+    )
 
     def get(self, request):
         data = {}
         data['calendar_data'] = self.service.get_user_tasks_by_deadlines(
-            self.get_user_entity()
+            self.request.user.id
         )
 
         return JsonResponse(data)
     
 
-class DeadlinesUpdateView(ApiLoginRequiredMixin, UserEntityMixin, View):
+class DeadlinesUpdateView(ApiLoginRequiredMixin, View):
     use_case = DeadlinesUpdateUseCase(
         task_repository=TaskRepository(
             Task, 
@@ -72,14 +91,13 @@ class DeadlinesUpdateView(ApiLoginRequiredMixin, UserEntityMixin, View):
         post_data = self.request.body.decode('utf-8')
         post_data_json = json.loads(post_data)
 
-        self.use_case.execute(self.get_user_entity(), post_data_json['new_deadlines'])
+        self.use_case.execute(self.request.user.id, post_data_json['new_deadlines'])
 
         return JsonResponse({})
 
 
 class TaskView(
             ModelPermissionMixin,
-            UserEntityMixin,
             ApiLoginRequiredMixin, 
             ModelApiView,
         ):
@@ -124,7 +142,7 @@ class TaskView(
     def form_valid(self, form):
         if not form.instance.order:
             form.instance.order = self.service.get_next_task_order(
-                self.get_user_entity()
+                self.request.user.id
             )
         form.instance.user = self.request.user
         return super().form_valid(form)
@@ -160,7 +178,6 @@ class CategoryView(
 
 class CategoriesView(
             ApiLoginRequiredMixin, 
-            UserEntityMixin, 
             View,
         ):
     template_name = 'task/categories.html'
@@ -170,14 +187,13 @@ class CategoriesView(
 
     def get(self, request):
         categories = self.service.get_ordered_user_categories(
-                self.get_user_entity()
+                self.request.user.id
             )
         return JsonResponse({'categories': categories})
 
 
 class OrderUpdateView(
             ApiLoginRequiredMixin, 
-            UserEntityMixin, 
             View,
         ):
     '''
@@ -196,7 +212,7 @@ class OrderUpdateView(
             )
         )
         use_case.execute(
-                self.get_user_entity(), post_data_json['order']
+                self.request.user.id, post_data_json['order']
             )
         return HttpResponse('OK')
     
