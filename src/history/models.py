@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 from task.models import DomainQuerySet
-from task.validators import duration_validator
 from .domain import HistoryEntity, SharedHistoryEntity
 from .constants.choices import HistoryTaskStatusChoices
 
@@ -39,14 +38,12 @@ class History(models.Model):
     planned_time = models.DurationField(
             null=False, 
             blank=False, 
-            verbose_name='Время, которое было изначально запланировано на процесс выполнения задачи',
-            validators=[duration_validator],
+            verbose_name='Время, которое было изначально запланировано на процесс выполнения задачи'
         )
     execution_time = models.DurationField(
             null=False, 
             blank=False, 
-            verbose_name='Время, которое реально потребовалось на выполнение задачи',
-            validators=[duration_validator],
+            verbose_name='Время, которое реально потребовалось на выполнение задачи'
         )
     execution_date = models.DateField(
             null=False, 

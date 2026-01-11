@@ -143,10 +143,14 @@ class ShareHistoryView(View):
 
     def get(self, request):
         try:
-            context = self.use_case.get_shared_history_by_key(self.request.GET['key'])
-            
-            context['title'] = 'История ' + context['owner'].username 
-            return render(request, 'history/history.html', context=context)
+            service = ShareHistoryService(
+                SharedHistoryRepository(
+                    SharedHistory, 
+                    connection
+                )
+            )
+            context = service.get_shared_history_by_key(self.request.GET['key'])
+            return JsonResponse(context)
         except ObjectDoesNotExist as ex:
             return HttpResponseNotFound(
                     '<h1>404 Not Found</h1><p>Такой сохраненной истории не существует</p>'

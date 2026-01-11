@@ -59,6 +59,10 @@ class TaskRepositoryInterface(ABC):
     def delete_task(self, task: TaskEntity) -> None:
         pass
 
+    @abstractmethod
+    def get_tasks_bulk(self, task_ids: list[int]) -> list[TaskEntity]:
+        pass
+
 
 class CategoryRepositoryInterface(ABC):
     @abstractmethod
@@ -76,6 +80,9 @@ class CategoryRepositoryInterface(ABC):
     def delete_category(self, category_entity: CategoryEntity) -> None:
         pass
 
+    @abstractmethod
+    def save_category(self, category_entity: CategoryEntity) -> None:
+        pass
 
 class TaskRepository(TaskRepositoryInterface):
     def __init__(self, model: Type[Task], connection: ConnectionProxy):
@@ -154,8 +161,10 @@ class TaskRepository(TaskRepositoryInterface):
         )
         return cursor.fetchall()[0][0]
 
-    def save_task(self, task: TaskEntity) -> None:
-        Task.from_domain(task).save()
+    def save_task(self, task_entity: TaskEntity) -> None:
+        task = Task.from_domain(task_entity)
+        task.clean_fields(exclude=['id'])
+        task.save()
 
     def update_user_tasks_order(self, user_id: int, new_order: list[str]) -> None:
         cursor = self._connection.cursor()
@@ -189,9 +198,9 @@ class TaskRepository(TaskRepositoryInterface):
         cursor = self._connection.cursor()
         cursor.execute(
             '''
-            SELECT array_agg(
+            SELECT coalesce(array_agg(
                 category_stats
-            ) FROM (
+            ), '{}') FROM (
                 SELECT 
                 json_build_object('id', tc.id, 'name', tc.name, 'color', tc.color, 'taskCount', count(tt.id)) AS category_stats
                 FROM task_task tt
@@ -225,6 +234,9 @@ class TaskRepository(TaskRepositoryInterface):
     def delete_task(self, task: TaskEntity) -> None:
         self._model.from_domain(task).delete()
 
+    def get_tasks_bulk(self, task_ids: list[int]) -> list[TaskEntity]:
+        return self._model.objects.filter(id__in=task_ids).to_entity_list()
+
 
 class CategoryRepository(CategoryRepositoryInterface):
     def __init__(self, model: Type[Category], connection: ConnectionProxy):
@@ -247,6 +259,11 @@ class CategoryRepository(CategoryRepositoryInterface):
             [user_id]
         )
         return cursor.fetchall()[0][0]
+    
+    def save_category(self, category_entity: CategoryEntity) -> None:
+        category = Category.from_domain(category_entity)
+        category.clean_fields(exclude=['id'])
+        category.save()
 
     def delete_category(self, category_entity: CategoryEntity) -> None:
         self._model.from_domain(category_entity).delete()

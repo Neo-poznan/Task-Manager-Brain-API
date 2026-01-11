@@ -1,18 +1,14 @@
 import json
 
 from django.views.generic import View
-from django.urls import reverse_lazy
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseForbidden, HttpResponse, JsonResponse, HttpResponseNotFound
 from django.db import connection
-from django.db.models import Q
 
 from core.http import FormJsonResponse
 from core.mixins import ApiLoginRequiredMixin
-from core.views import ModelPermissionMixin, ModelApiView
-from .forms import TaskForm, CategoryCreationForm
 from .models import Task, Category
-from .services import TaskService, DeadlinesUpdateUseCase, TaskOrderUpdateUseCase
+from .services import CategoryService, CategoryUseCase, TaskService, DeadlinesUpdateUseCase, TaskOrderUpdateUseCase, TaskUseCase
 from .infrastructure import TaskRepository, CategoryRepository
 
 
@@ -97,9 +93,8 @@ class DeadlinesUpdateView(ApiLoginRequiredMixin, View):
 
 
 class TaskView(
-            ModelPermissionMixin,
             ApiLoginRequiredMixin, 
-            ModelApiView,
+            View,
         ):
     '''
     Принимает form-data с полями:
@@ -111,12 +106,8 @@ class TaskView(
 
     При get запросе возвращает json с базовыми значениями формы
     '''
-    form_class = TaskForm
-    response_class = FormJsonResponse
-    model = Task
-    pk_url_kwarg = 'task_id'
 
-    service = TaskService(
+    use_case = TaskUseCase(
         task_repository=TaskRepository(
             Task, connection
         )
@@ -134,29 +125,47 @@ class TaskView(
                 '<h1>400 Forbidden</h1><p>Вы пытаетесь отредактировать задачу другого пользователя</p>'
             )
 
-    def get_form(self, form_class = None):
-        form =  super().get_form(form_class)
-        form.fields['category'].queryset = Category.objects.filter(Q(user=self.request.user) | Q(is_custom=False))
-        return form
+    def get(self, request, task_id):
+        task = self.use_case.get(
+            task_id,
+            self.request.user.id,
+        )
+        print(f'Fetched task: {task}')  # Debug statement
+        return JsonResponse(task)
+    
+    def post(self, request):
+        post_data = self.request.body.decode('utf-8')
+        post_data_json = json.loads(post_data)
 
-    def form_valid(self, form):
-        if not form.instance.order:
-            form.instance.order = self.service.get_next_task_order(
-                self.request.user.id
-            )
-        form.instance.user = self.request.user
-        return super().form_valid(form)
+        self.use_case.create(
+            self.request.user.id,
+            post_data_json,
+        )
+
+        return JsonResponse({})
+    
+    def put(self, request, task_id):
+        put_data = self.request.body.decode('utf-8')
+        put_data_json = json.loads(put_data)
+
+        self.use_case.update(
+            self.request.user.id,
+            task_id,
+            put_data_json,
+        )
+
+        return JsonResponse({})
 
 
 class CategoryView(
-        ModelPermissionMixin,
         ApiLoginRequiredMixin, 
-        ModelApiView,
+        View,
     ):
-    form_class = CategoryCreationForm
     response_class = FormJsonResponse
     model = Category
-    pk_url_kwarg = 'category_id'
+    use_case = CategoryUseCase(
+        category_repository=CategoryRepository(Category, connection),
+    )
 
     def dispatch(self, request, *args, **kwargs):
         try:
@@ -169,11 +178,40 @@ class CategoryView(
             return HttpResponseForbidden(
                 '<h1>400 Forbidden</h1><p>Вы пытаетесь отредактировать категорию другого пользователя</p>'
             )
+        except ValueError as e:
+            return HttpResponseForbidden(
+                f'<h1>400 Forbidden</h1><p>{str(e)}</p>'
+            )
 
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        form.instance.is_custom = True
-        return super().form_valid(form)
+    def get(self, request, category_id):
+        category = self.use_case.get(
+            category_id,
+            self.request.user.id,
+        )
+        return JsonResponse(category)
+    
+    def post(self, request):
+        post_data = self.request.body.decode('utf-8')
+        post_data_json = json.loads(post_data)
+
+        self.use_case.create(
+            self.request.user.id,
+            post_data_json,
+        )
+
+        return JsonResponse({})
+    
+    def put(self, request, category_id):
+        put_data = self.request.body.decode('utf-8')
+        put_data_json = json.loads(put_data)
+
+        self.use_case.update(
+            self.request.user.id,
+            category_id,
+            put_data_json,
+        )
+
+        return JsonResponse({})
 
 
 class CategoriesView(
@@ -181,7 +219,7 @@ class CategoriesView(
             View,
         ):
     template_name = 'task/categories.html'
-    service = TaskService(
+    service = CategoryService(
         category_repository=CategoryRepository(Category, connection),
     )
 
@@ -211,8 +249,11 @@ class OrderUpdateView(
                     connection,
             )
         )
-        use_case.execute(
+        try:
+            use_case.execute(
                 self.request.user.id, post_data_json['order']
             )
-        return HttpResponse('OK')
-    
+            return HttpResponse('OK')
+        except PermissionError:
+            return HttpResponseForbidden('Вы пытаетесь изменить задачу другого пользователя!')
+        
