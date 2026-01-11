@@ -101,14 +101,14 @@ class ShareHistoryService(ShareHistoryServiceInterface):
 
     def get_shared_history_by_key(self, key: str) -> dict:
         shared_history = self._shared_history_repository.get_shared_history_by_key(key)
-        shared_history = shared_history.history_statistics
+        shared_history_data = shared_history.history_statistics
         history_metadata = {
-            'from_date': shared_history.from_date,
-            'to_date': shared_history.to_date,
-            'owner': shared_history.user
+            'fromDate': shared_history.from_date,
+            'toDate': shared_history.to_date,
+            'owner': shared_history.user_id, 
         }
-        shared_history.update(history_metadata)
-        return shared_history
+        shared_history_data.update({'historyMetadata': history_metadata})
+        return shared_history_data
 
     def get_user_shared_histories(
                 self, 
@@ -268,12 +268,11 @@ class MoveTaskToHistoryUseCase(MoveTaskToHistoryUseCaseInterface):
     
         task = self._task_repository.get_task_by_id(task_id)
         self._user_task_owner(user_id, task)
-        status = self._get_history_task_status(task, successful)
 
         history_task = HistoryEntity.from_task(
                 task, 
                 execution_time, 
-                status
+                successful
             )
         self._task_repository.delete_task(task)
         self._history_repository.save_history(history_task)
@@ -281,26 +280,6 @@ class MoveTaskToHistoryUseCase(MoveTaskToHistoryUseCaseInterface):
     def _user_task_owner(self, user_id: int, task: TaskEntityProtocol) -> Union[None, NoReturn]:
         if not task.user_id == user_id:
             raise PermissionError
-
-    def _get_history_task_status(
-            self, 
-            task: TaskEntityProtocol, 
-            successful: str
-        ) -> str:
-        if successful == 'false':
-            return HistoryTaskStatusChoices.FAILED
-        elif successful == 'true' and self._is_out_of_deadline(task.deadline):
-            return HistoryTaskStatusChoices.OUT_OF_DEADLINE
-        elif successful == 'true':
-            return HistoryTaskStatusChoices.SUCCESSFUL
-        else:
-            raise TypeError('Status is incorrect!')
-
-    def _is_out_of_deadline(self, deadline: date) -> bool:
-        now = date.today()
-        if deadline and deadline < now:
-            return True
-        return False
     
 
 class HistoryService(HistoryServiceInterface):

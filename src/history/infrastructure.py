@@ -6,6 +6,7 @@ from django.utils.connection import ConnectionProxy
 
 from .models import History, SharedHistory
 from .domain import SharedHistoryEntity, HistoryEntity
+from .constants.choices import HistoryTaskStatusChoices
 
 
 class HistoryRepositoryInterface(ABC):
@@ -230,6 +231,7 @@ class HistoryRepository(HistoryRepositoryInterface):
             [user_id, from_date, to_date]
         )
         return cursor.fetchall()[0][0]
+
     def get_accuracy_by_categories(
             self, 
             user_id: int,
@@ -285,7 +287,7 @@ class HistoryRepository(HistoryRepositoryInterface):
             '''
             SELECT count(*)-(
                     SELECT count(*) FROM history_history hh2 
-                    WHERE hh2.status='FAILED' 
+                    WHERE hh2.status=%s
                     AND hh2.user_id = %s 
                     AND execution_date BETWEEN %s AND %s
                 ) AS successful_tasks,
@@ -293,7 +295,7 @@ class HistoryRepository(HistoryRepositoryInterface):
             FROM history_history hh
             WHERE hh.user_id = %s AND execution_date BETWEEN %s AND %s;
             ''',
-            [user_id, from_date, to_date, user_id, from_date, to_date]
+            [HistoryTaskStatusChoices.FAILED, user_id, from_date, to_date, user_id, from_date, to_date]
         )
         return cursor.fetchall()[0]
 
@@ -320,7 +322,7 @@ class HistoryRepository(HistoryRepositoryInterface):
                     FROM 
                         history_history hh2 
                     WHERE 
-                        hh2.status='FAILED' 
+                        hh2.status= %s
                         AND hh2.category_id=hh.category_id 
                         AND hh2.user_id = %s AND execution_date BETWEEN %s AND %s
                     ) AS successful_tasks
@@ -332,9 +334,10 @@ class HistoryRepository(HistoryRepositoryInterface):
                 GROUP BY category_id, tc."name", tc.color
             ) AS subquery;
             ''',
-            [user_id, from_date, to_date, user_id, from_date, to_date]
+            [HistoryTaskStatusChoices.FAILED, user_id, from_date, to_date, user_id, from_date, to_date]
         )
         return cursor.fetchall()[0][0]
+
     def get_count_tasks_by_weekdays(
             self, 
             user_id: int, 
@@ -447,19 +450,20 @@ class HistoryRepository(HistoryRepositoryInterface):
         cursor = self._connection.cursor()
         cursor.execute(
             '''
-            SELECT array_agg(
+            SELECT  coalesce(array_agg(
                 category_stats
-            ) FROM (
+            ), '{}') FROM (
                 SELECT 
                 json_build_object('id', tc.id, 'name', tc.name, 'color', tc.color, 'taskCount', count(hh.id)) AS category_stats
                 FROM history_history hh
                 JOIN task_category tc
                 ON hh.category_id = tc.id
                 WHERE hh.user_id = %s AND hh.execution_date = CURRENT_DATE
+                AND hh.status = %s
                 GROUP BY tc.id
             ) AS subquery;
             ''',
-            [user_id]
+            [user_id, HistoryTaskStatusChoices.SUCCESSFUL]
         )
         return cursor.fetchall()[0][0]
     
@@ -473,9 +477,10 @@ class HistoryRepository(HistoryRepositoryInterface):
             FROM history_history hh
             JOIN task_category tc ON tc.id = hh.category_id
             WHERE hh.user_id = %s AND hh.execution_date = CURRENT_DATE
+            AND hh.status = %s
             GROUP BY hh.user_id;
             ''',
-            [user_id]
+            [user_id, HistoryTaskStatusChoices.SUCCESSFUL]
         )
         rows = cursor.fetchall()
         return rows[0][0] if len(rows) > 0 else []

@@ -3,7 +3,6 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 from .domain import CategoryEntity, TaskEntity
-from task.validators import duration_validator
 
 
 class DomainQuerySet(models.QuerySet):
@@ -53,7 +52,7 @@ class Category(models.Model):
             name=entity.name,
             description=entity.description,
             color=entity.color,
-            user_id=entity.user.id if entity.user else None,
+            user_id=entity.user_id if entity.user_id else None,
             is_custom=entity.is_custom
         )
 
@@ -114,14 +113,13 @@ class Task(models.Model):
     planned_time = models.DurationField(
         null=False, 
         blank=False, 
-        verbose_name='Время, запланированное на процесс выполнения задачи',
-        validators=[duration_validator]
+        verbose_name='Время, запланированное на процесс выполнения задачи'
     )
 
     objects = DomainQuerySet.as_manager()
 
     @classmethod
-    def from_domain(cls, entity: TaskEntity):
+    def from_domain(cls, entity: TaskEntity) -> "Task":
         return cls(
             id=entity.id,
             name=entity.name,
