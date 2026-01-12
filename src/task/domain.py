@@ -102,7 +102,7 @@ class CategoryEntity:
 
     @color.setter
     def color(self, value: str) -> None:
-        self._color = self._validate_color(value)
+        self._color = self._parse_color(value)
     
     @description.setter
     def description(self, value: Optional[str]) -> None:
@@ -118,68 +118,10 @@ class CategoryEntity:
     def _validate_color(self, color: Optional[str]) -> Union[str, NoReturn]:
         if color is None:
             raise ValueError('Цвет категории не может быть пустым')
-        if not any(
-            (
-                self._color_is_hex(color),
-                self._color_is_rgb(color),
-                self._color_is_rgba(color)
-            )
-        ):
-            raise ValueError('Цвет категории должен быть в формате HEX, RGB или RGBA')
-        return self._get_color_in_rgba(color)
+        if not self._color_is_rgba(color):
+            raise ValueError('Цвет категории должен быть в формате rgba(r, g, b, a)')
+        return color
     
-    def _get_color_in_rgba(self, color: str) -> str:
-        if self._color_is_rgba(color):
-            return color
-        elif self._color_is_hex(color):
-            return self._hex_to_rgba(color)
-        elif self._color_is_rgb(color):
-            return self._rgb_to_rgba(color)
-
-    def _color_is_hex(self, color: str) -> bool:
-        template = r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$'
-        return bool(re.fullmatch(template, color))
-
-    def _color_is_rgb(self, color: str) -> bool:
-        template = r'^rgb\((\s*\d{1,3}\s*,){2}\s*\d{1,3}\s*\)$'
-        is_match = bool(re.fullmatch(template, color))
-        if not is_match:
-            return is_match
-        rgb_elements = color.replace('rgb(', '').replace(')', '').split(',')
-        r, g, b = tuple(int(element.strip()) for element in rgb_elements)
-        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255):
-            return False
-        return True
-
-    def _color_is_rgba(self, color: str) -> bool:
-        template = r'^rgba\((\s*\d{1,3}\s*,){3}\s*(0(\.\d+)?|1(\.0+)?)\s*\)$'
-        is_match = bool(re.fullmatch(template, color))
-        if not is_match:
-            return is_match
-        rgba_elements = color.replace('rgba(', '').replace(')', '').split(',')
-        r, g, b = tuple(int(element.strip()) for element in rgba_elements[0:3])
-        alpha = float(rgba_elements[3].strip())
-        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255):
-            return False
-        if not (0.0 <= alpha <= 1.0):
-            return False
-        return True
-        
-    
-    def _hex_to_rgba(self, color: str) -> str:
-        value = color.lstrip('#')
-        lv = len(value)
-        rgb = tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
-        rgba = f'rgba{rgb}'[0:-1]
-        rgba += f', {self.DEFAULT_COLOR_TRANSPARENCY})'
-        return rgba
-    
-    def _rgb_to_rgba(self, color: str) -> str:
-        rgb_elements = color.replace('rgb(', '').replace(')', '')
-        r, g, b = tuple(int(element) for element in rgb_elements.split(','))
-        rgba = f'rgba({r}, {g}, {b}'
-        rgba += f', {self.DEFAULT_COLOR_TRANSPARENCY})'
-        return rgba
 
     def to_dict(self, for_form: bool = False) -> dict:
         return {
@@ -207,11 +149,78 @@ class CategoryEntity:
             id=data.get('id'),
             name=data.get('name'),
             description=data.get('description'),
-            color=data.get('color'),
+            color=cls._parse_color(data.get('color')),
             user_id=data['user_id'],
             is_custom=data.get('is_custom', True),
         )
 
+    @classmethod
+    def _parse_color(cls, color: Union[str, None]):
+        if not isinstance(color, str):
+            raise ValueError('Цвет категории должен быть строкой')
+        color = color.strip().lower()
+        if cls._color_is_rgba(color):
+            return color
+        elif cls._color_is_hex(color):
+            return cls._hex_to_rgba(color)
+        elif cls._color_is_rgb(color):
+            return cls._rgb_to_rgba(color)
+        else:
+            raise ValueError('Цвет категории должен быть в формате hex, rgb(r, g, b) или rgba(r, g, b, a)')
+
+    @classmethod
+    def _color_is_hex(cls, color: str) -> bool:
+        template = r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$'
+        return bool(re.fullmatch(template, color))
+
+    @classmethod
+    def _color_is_rgb(cls, color: str) -> bool:
+        template = r'^rgb\((\s*\d{1,3}\s*,){2}\s*\d{1,3}\s*\)$'
+        is_match = bool(re.fullmatch(template, color))
+        if not is_match:
+            return is_match
+        rgb_elements = color.replace('rgb(', '').replace(')', '').split(',')
+        r, g, b = tuple(int(element.strip()) for element in rgb_elements)
+        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255):
+            return False
+        return True
+
+    @classmethod
+    def _color_is_rgba(cls, color: str) -> bool:
+        template = r'^rgba\((\s*\d{1,3}\s*,){3}\s*(0(\.\d+)?|1(\.0+)?)\s*\)$'
+        is_match = bool(re.fullmatch(template, color))
+        if not is_match:
+            return is_match
+        rgba_elements = color.replace('rgba(', '').replace(')', '').split(',')
+        r, g, b = tuple(int(element.strip()) for element in rgba_elements[0:3])
+        alpha = float(rgba_elements[3].strip())
+        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255):
+            return False
+        if not (0.0 <= alpha <= 1.0):
+            return False
+        return True
+        
+    @classmethod
+    def _hex_to_rgba(cls, color: str) -> str:
+        value = color.lstrip('#')
+        
+        # Handle short hex format (#FFF -> #FFFFFF)
+        if len(value) == 3:
+            value = ''.join([char * 2 for char in value])
+        
+        lv = len(value)
+        rgb = tuple(int(value[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+        rgba = f'rgba{rgb}'[0:-1]
+        rgba += f', {cls.DEFAULT_COLOR_TRANSPARENCY})'
+        return rgba
+    
+    @classmethod
+    def _rgb_to_rgba(cls, color: str) -> str:
+        rgb_elements = color.replace('rgb(', '').replace(')', '')
+        r, g, b = tuple(int(element) for element in rgb_elements.split(','))
+        rgba = f'rgba({r}, {g}, {b}'
+        rgba += f', {cls.DEFAULT_COLOR_TRANSPARENCY})'
+        return rgba
 
 class TaskEntity:
     def __init__(

@@ -97,7 +97,7 @@ class TaskUseCaseInterface(ABC):
             self, 
             task_id: int, 
             user_id: UUID
-        ) -> Union[TaskEntityProtocol, NoReturn]:
+        ) -> Union[dict, NoReturn]:
         pass
 
     @abstractmethod
@@ -105,7 +105,7 @@ class TaskUseCaseInterface(ABC):
             self, 
             user_id: UUID, 
             task_data: dict[str, Union[str, int, bool]]
-        ) -> TaskEntityProtocol:
+        ) -> Union[None, NoReturn]:
         pass
 
     @abstractmethod
@@ -114,7 +114,7 @@ class TaskUseCaseInterface(ABC):
             user_id: UUID, 
             task_id: int, 
             task_data: dict[str, Union[str, int, bool]]
-        ) -> TaskEntityProtocol:
+        ) -> Union[None, NoReturn]:
         pass
 
 
@@ -186,9 +186,13 @@ class TaskService(TaskServiceInterface):
 
 class TaskUseCase(TaskUseCaseInterface):
 
-    def __init__(self, task_repository: TaskRepositoryInterface):
+    def __init__(
+            self, task_repository: TaskRepositoryInterface, 
+            category_repository: CategoryRepositoryInterface = None
+        ):
         self._task_repository = task_repository  
-    
+        self._category_repository = category_repository
+
     def get(
             self, 
             task_id: int, 
@@ -204,15 +208,25 @@ class TaskUseCase(TaskUseCaseInterface):
             user_id: UUID, 
             task_data: dict[str, Union[str, int, bool]]
         ) -> Union[None, NoReturn]:
+        self._user_category_owner(user_id, task_data.get('category'))
         task = TaskEntity.from_dict({**task_data, 'user_id': str(user_id), 'order': self._task_repository.get_next_task_order(user_id)})
         self._task_repository.save_task(task)
+    
+    def _user_category_owner(
+            self, 
+            user_id: UUID, 
+            category_id: int
+        ) -> Union[None, NoReturn]:
+        category = self._category_repository.get_category_by_id(category_id)
+        if category.user_id != user_id:
+            raise PermissionError()
     
     def update(
             self, 
             user_id: UUID, 
             task_id: int, 
             task_data: dict[str, Union[str, int, bool]]
-        ) -> TaskEntityProtocol:
+        ) -> Union[None, NoReturn]:
         task = self._task_repository.get_task_by_id(task_id)
         if task.user_id != user_id:
             raise PermissionError()
@@ -222,9 +236,7 @@ class TaskUseCase(TaskUseCaseInterface):
         task.category_id = task_data.get('category')
         task.deadline = task_data.get('deadline')
         task.planned_time = task_data.get('planned_time')
-
         self._task_repository.save_task(task)
-        return task
 
 class TaskOrderUpdateUseCase(TaskOrderUpdateUseCaseInterface):
     def __init__(self, task_repository: TaskRepositoryInterface):

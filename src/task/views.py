@@ -111,6 +111,9 @@ class TaskView(
     use_case = TaskUseCase(
         task_repository=TaskRepository(
             Task, connection
+        ),
+        category_repository=CategoryRepository(
+            Category, connection
         )
     )
 
@@ -119,7 +122,7 @@ class TaskView(
             return super().dispatch(request, *args, **kwargs)
         except ObjectDoesNotExist:
             return HttpResponseNotFound(
-                '<h1>404 Not Found</h1><p>Такой задачи не существует</p>'
+                '<h1>404 Not Found</h1><p>Такой задачи или категории не существует</p>'
             )
         except PermissionError:
             return HttpResponseForbidden(
@@ -193,6 +196,10 @@ class CategoryView(
         except ValueError as e:
             return HttpResponseBadRequest(
                 f'<h1>400 Bad Request</h1><p>{str(e)}</p>'
+            )
+        except TypeError as e:
+            return HttpResponseBadRequest(
+                f'<h1>400 Bad Request</h1><p>Неправильный формат json</p>'
             )
 
     def get(self, request, category_id):
