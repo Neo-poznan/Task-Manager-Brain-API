@@ -1,5 +1,5 @@
 from django.http.multipartparser import MultiPartParser
-from django.http.response import JsonResponse, HttpResponseRedirectBase, HttpResponseBase, HttpResponseBadRequest
+from django.http.response import JsonResponse, HttpResponseRedirectBase, HttpResponseBase
 from django.views.generic import UpdateView
 
 

@@ -1,9 +1,10 @@
 import re
 import random
-from datetime import date, timedelta, datetime
+from datetime import timedelta, datetime
 from typing import Iterable, Union, NoReturn
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from uuid import UUID
 
 from django.db import transaction
 from django.core.exceptions import ValidationError
@@ -12,7 +13,6 @@ from task.infrastructure import TaskRepositoryInterface
 from task.domain import TaskEntityProtocol
 from .infrastructure import HistoryRepositoryInterface, SharedHistoryRepositoryInterface
 from .domain import HistoryEntity, SharedHistoryEntity
-from .constants.choices import HistoryTaskStatusChoices
 
 
 class ShareHistoryServiceInterface(ABC):
@@ -24,7 +24,7 @@ class ShareHistoryServiceInterface(ABC):
     @abstractmethod
     def get_user_shared_histories(
                 self, 
-                user_id: int
+                user_id: UUID
             ) -> list[SharedHistoryEntity]:
         pass
 
@@ -32,7 +32,7 @@ class ShareHistoryServiceInterface(ABC):
     def delete_user_shared_history_by_key(
                 self, 
                 history_id: int, 
-                user_id: int
+                user_id: UUID
             ) -> SharedHistoryEntity:
         pass
 
@@ -42,7 +42,7 @@ class MoveTaskToHistoryUseCaseInterface(ABC):
     @abstractmethod
     def execute(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             task_id: int, 
             execution_time: timedelta,
         ) -> Union[None, NoReturn]:
@@ -54,7 +54,7 @@ class GetUserHistoryUseCaseInterface(ABC):
     @abstractmethod
     def execute(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             from_date: str, 
             to_date: str
         ) -> dict:
@@ -66,7 +66,7 @@ class HistoryServiceInterface(ABC):
     @abstractmethod
     def get_user_history_statistics_for_today(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> dict:
         pass
 
@@ -74,7 +74,7 @@ class HistoryServiceInterface(ABC):
     def delete_user_history_by_id(
             self, 
             history_id: int, 
-            user_id: int
+            user_id: UUID
         ) -> Union[None, NoReturn]:
         pass
 
@@ -84,7 +84,7 @@ class ShareHistoryUseCaseInterface(ABC):
     @abstractmethod
     def execute(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             from_date: str, 
             to_date: str
         ) -> str:
@@ -112,14 +112,14 @@ class ShareHistoryService(ShareHistoryServiceInterface):
 
     def get_user_shared_histories(
                 self, 
-                user_id: int
+                user_id: UUID
             ) -> list[SharedHistoryEntity]:
         return self._shared_history_repository.get_user_shared_histories(user_id)
 
     def delete_user_shared_history_by_key(
                 self, 
                 history_id: int, 
-                user_id: int
+                user_id: UUID
             ) -> Union[None, NoReturn]:
         history = self._shared_history_repository.get_shared_history_by_key(history_id)
         if history.user_id != user_id:
@@ -137,7 +137,7 @@ class GetUserHistoryUseCase(GetUserHistoryUseCaseInterface):
 
     def execute(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             from_date: str, 
             to_date: str
         ) -> dict:
@@ -201,7 +201,7 @@ class GetUserHistoryUseCase(GetUserHistoryUseCaseInterface):
         try:
             datetime.strptime(from_date_str, '%Y-%m-%d').date()
             datetime.strptime(to_date_str, '%Y-%m-%d').date()
-        except Exception as exc:
+        except Exception:
             raise ValidationError('Неправильный формат даты')    
 
     def _validate_dates_range(self, from_date_str: str, to_date_str:str) -> Union[None, NoReturn]:
@@ -260,7 +260,7 @@ class MoveTaskToHistoryUseCase(MoveTaskToHistoryUseCaseInterface):
     @transaction.atomic
     def execute(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             task_id: int, 
             execution_time: timedelta,
             successful: str
@@ -277,7 +277,7 @@ class MoveTaskToHistoryUseCase(MoveTaskToHistoryUseCaseInterface):
         self._task_repository.delete_task(task)
         self._history_repository.save_history(history_task)
 
-    def _user_task_owner(self, user_id: int, task: TaskEntityProtocol) -> Union[None, NoReturn]:
+    def _user_task_owner(self, user_id: UUID, task: TaskEntityProtocol) -> Union[None, NoReturn]:
         if not task.user_id == user_id:
             raise PermissionError
     
@@ -289,7 +289,7 @@ class HistoryService(HistoryServiceInterface):
         ):
         self._history_repository = history_repository
 
-    def get_user_history_statistics_for_today(self, user_id: int) -> dict:
+    def get_user_history_statistics_for_today(self, user_id: UUID) -> dict:
         statistics = {
             'tasks': self._history_repository.get_user_tasks_for_today_json(user_id),
             'categories' : self._history_repository.get_count_user_tasks_in_categories_for_today(user_id),
@@ -299,7 +299,7 @@ class HistoryService(HistoryServiceInterface):
     def delete_user_history_by_id(
             self, 
             history_id: int, 
-            user_id: int
+            user_id: UUID
         ) -> Union[None, NoReturn]:
         history = self._history_repository.get_history_by_id(history_id)
         if history.user_id != user_id:
@@ -319,7 +319,7 @@ class ShareHistoryUseCase(ShareHistoryUseCaseInterface):
 
     def execute(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             from_date: str, 
             to_date: str
         ) -> str:
@@ -335,7 +335,7 @@ class ShareHistoryUseCase(ShareHistoryUseCaseInterface):
     def _generate_random_string(self) -> str:
         string = ''
         chars = '1234567890-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        for i in range(12):
+        for _ in range(12):
             string += random.choice(chars)
         return string
 

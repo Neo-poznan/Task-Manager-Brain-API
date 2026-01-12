@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import os
-import datetime
 from pathlib import Path
 from django.urls import reverse_lazy
 from dotenv import load_dotenv

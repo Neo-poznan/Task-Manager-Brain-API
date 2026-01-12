@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal
 from typing import Type, Union, NoReturn
+from uuid import UUID
 
 from django.utils.connection import ConnectionProxy
 
@@ -28,77 +29,77 @@ class HistoryRepositoryInterface(ABC):
     @abstractmethod
     def get_count_tasks_in_categories(
             self,
-            user_id: int
+            user_id: UUID
         ) -> dict[str, list[Union[str, int]]]:
         pass
 
     @abstractmethod
     def get_common_accuracy(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> tuple[Decimal]:
         pass
 
     @abstractmethod
     def get_accuracy_by_categories(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> dict[str, list[Union[str, Decimal]]]:
         pass
 
     @abstractmethod
     def get_common_success_rate(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> tuple[Decimal]:
         pass
 
     @abstractmethod
     def get_success_rate_by_categories(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> dict[str, list[Union[str, Decimal]]]:
         pass
 
     @abstractmethod
     def get_count_tasks_by_weekdays(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> dict[str, list[Union[str, int]]]:
         pass
 
     @abstractmethod
     def get_common_successful_planning_rate(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> tuple[int]:
         pass
 
     @abstractmethod
     def get_count_successful_planned_tasks_by_categories(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> dict[str, list[Union[str, int]]]:
         pass
 
     @abstractmethod
     def get_history(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> list:
         pass
 
     @abstractmethod
     def get_count_user_tasks_in_categories_for_today(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> list[dict[str, Union[str, int]]]:
         pass
 
     @abstractmethod
     def get_user_tasks_for_today_json(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> list[dict[str, Union[str, int]]]:
         pass
 
@@ -136,7 +137,7 @@ class SharedHistoryRepositoryInterface(ABC):
     @abstractmethod
     def get_user_shared_histories(
             self,
-            user_id: int
+            user_id: UUID
         ) -> list[SharedHistoryEntity]:
         pass
 
@@ -174,7 +175,7 @@ class HistoryRepository(HistoryRepositoryInterface):
 
     def get_count_tasks_in_categories(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             from_date: str, 
             to_date: str
         ) ->dict[str, list[Union[str, int]]]:
@@ -202,7 +203,7 @@ class HistoryRepository(HistoryRepositoryInterface):
         return cursor.fetchall()[0][0]
     
     def get_common_accuracy(
-            self, user_id: int, 
+            self, user_id: UUID, 
             from_date: str,
             to_date: str
         ) -> tuple[Decimal]:
@@ -234,7 +235,7 @@ class HistoryRepository(HistoryRepositoryInterface):
 
     def get_accuracy_by_categories(
             self, 
-            user_id: int,
+            user_id: UUID,
             from_date: str, 
             to_date: str
         ) -> dict[str, list[Union[str, Decimal]]]:
@@ -278,7 +279,7 @@ class HistoryRepository(HistoryRepositoryInterface):
 
     def get_common_success_rate(
             self,
-            user_id: int, 
+            user_id: UUID, 
             from_date: str, 
             to_date: str
         ) -> tuple[Decimal]:
@@ -301,7 +302,7 @@ class HistoryRepository(HistoryRepositoryInterface):
 
     def get_success_rate_by_categories(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             from_date: str, 
             to_date: str
         ) -> dict[str, list[Union[str, float]]]:
@@ -340,7 +341,7 @@ class HistoryRepository(HistoryRepositoryInterface):
 
     def get_count_tasks_by_weekdays(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             from_date: str, 
             to_date: str
         ) -> dict[str, list[Union[str, int]]]:
@@ -376,7 +377,7 @@ class HistoryRepository(HistoryRepositoryInterface):
 
     def get_common_successful_planning_rate(
             self,
-            user_id: int,
+            user_id: UUID,
             from_date: str,
             to_date: str
         ) -> tuple[int]:
@@ -398,7 +399,7 @@ class HistoryRepository(HistoryRepositoryInterface):
         return cursor.fetchall()[0]
 
     def get_count_successful_planned_tasks_by_categories(
-            self, user_id: int, 
+            self, user_id: UUID, 
             from_date: str, 
             to_date: str
         ) -> dict[str, list[Union[str, int]]]:
@@ -429,7 +430,7 @@ class HistoryRepository(HistoryRepositoryInterface):
 
     def get_history(
             self, 
-            user_id: int, 
+            user_id: UUID, 
             from_date: str, 
             to_date: str
         ) -> list:
@@ -446,7 +447,7 @@ class HistoryRepository(HistoryRepositoryInterface):
         )
         return [{'id': row[0], 'name': row[1]} for row in cursor.fetchall()]
     
-    def get_count_user_tasks_in_categories_for_today(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+    def get_count_user_tasks_in_categories_for_today(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -467,7 +468,7 @@ class HistoryRepository(HistoryRepositoryInterface):
         )
         return cursor.fetchall()[0][0]
     
-    def get_user_tasks_for_today_json(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+    def get_user_tasks_for_today_json(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -506,7 +507,7 @@ class SharedHistoryRepository(SharedHistoryRepositoryInterface):
     def save_user_shared_history(
             self, 
             key: str, 
-            user_id: int, 
+            user_id: UUID, 
             history_statistics: dict, 
             from_date: str, 
             to_date: str
@@ -524,7 +525,7 @@ class SharedHistoryRepository(SharedHistoryRepositoryInterface):
 
     def get_user_shared_histories(
                 self, 
-                user_id: int
+                user_id: UUID
             ) -> list[SharedHistoryEntity]:
         return self._shared_history_model.objects.filter(
                 user_id=user_id

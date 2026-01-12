@@ -1,6 +1,6 @@
-import json
 from abc import ABC, abstractmethod
 from typing import Union, Type
+from uuid import UUID
 
 from django.utils.connection import ConnectionProxy
 
@@ -10,11 +10,11 @@ from .domain import TaskEntity, CategoryEntity
 
 class TaskRepositoryInterface(ABC):
     @abstractmethod
-    def get_ordered_user_tasks_json(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+    def get_ordered_user_tasks_json(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         pass
 
     @abstractmethod
-    def get_ordered_user_tasks(self, user_id: int) -> list[TaskEntity]:
+    def get_ordered_user_tasks(self, user_id: UUID) -> list[TaskEntity]:
         pass
 
     @abstractmethod
@@ -24,14 +24,14 @@ class TaskRepositoryInterface(ABC):
     @abstractmethod
     def get_count_user_tasks_in_categories(
                 self, 
-                user_id: int
+                user_id: UUID
             ) -> dict[str, Union[list[int], list[str]]]:
             pass
 
     @abstractmethod
     def get_user_tasks_by_deadlines(
                 self, 
-                user_id: int
+                user_id: UUID
             ) -> dict[str, list[dict[str, Union[str, int]]]]:
         pass
 
@@ -40,19 +40,19 @@ class TaskRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def get_next_task_order(self, user_id: int) -> int:
+    def get_next_task_order(self, user_id: UUID) -> int:
         pass
 
     @abstractmethod
-    def update_user_tasks_order(self, user_id: int, new_order: list[str]) -> None:
+    def update_user_tasks_order(self, user_id: UUID, new_order: list[str]) -> None:
         pass
 
     @abstractmethod
-    def get_count_user_tasks_in_categories_for_today(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+    def get_count_user_tasks_in_categories_for_today(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         pass
 
     @abstractmethod
-    def get_user_tasks_for_today_json(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+    def get_user_tasks_for_today_json(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         pass
 
     @abstractmethod
@@ -72,7 +72,7 @@ class CategoryRepositoryInterface(ABC):
     @abstractmethod
     def get_ordered_user_categories_json(
                 self, 
-                user_id: int
+                user_id: UUID
             ) -> list[dict[str, Union[str, int]]]:
         pass
 
@@ -89,7 +89,7 @@ class TaskRepository(TaskRepositoryInterface):
         self._model = model
         self._connection = connection
 
-    def get_ordered_user_tasks_json(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+    def get_ordered_user_tasks_json(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -105,14 +105,14 @@ class TaskRepository(TaskRepositoryInterface):
         rows = cursor.fetchall()
         return rows[0][0] if len(rows) > 0 else []
     
-    def get_ordered_user_tasks(self, user_id: int) -> list[TaskEntity]:
+    def get_ordered_user_tasks(self, user_id: UUID) -> list[TaskEntity]:
         return self._model.objects.filter(user_id=user_id).order_by('order').to_entity_list()
 
     def get_task_by_id(self, task_id: int) -> TaskEntity:
         return self._model.objects.get(id=task_id).to_domain()
 
     def get_count_user_tasks_in_categories(
-                self, user_id: int
+                self, user_id: UUID
             ) -> dict[str, Union[list[int], list[str]]]:
         cursor = self._connection.cursor()
         cursor.execute(
@@ -140,7 +140,7 @@ class TaskRepository(TaskRepositoryInterface):
 
     def get_user_tasks_by_deadlines(
             self, 
-            user_id: int
+            user_id: UUID
         ) -> dict[str, list[dict[str, Union[str, int]]]]:
         cursor = self._connection.cursor()
         cursor.execute(
@@ -166,7 +166,7 @@ class TaskRepository(TaskRepositoryInterface):
         task.clean_fields(exclude=['id'])
         task.save()
 
-    def update_user_tasks_order(self, user_id: int, new_order: list[str]) -> None:
+    def update_user_tasks_order(self, user_id: UUID, new_order: list[str]) -> None:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -182,7 +182,7 @@ class TaskRepository(TaskRepositoryInterface):
             [new_order, user_id]
         )
 
-    def get_next_task_order(self, user_id: int) -> int:
+    def get_next_task_order(self, user_id: UUID) -> int:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -194,7 +194,7 @@ class TaskRepository(TaskRepositoryInterface):
         )
         return cursor.fetchall()[0][0]
     
-    def get_count_user_tasks_in_categories_for_today(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+    def get_count_user_tasks_in_categories_for_today(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -214,7 +214,7 @@ class TaskRepository(TaskRepositoryInterface):
         )
         return cursor.fetchall()[0][0]
     
-    def get_user_tasks_for_today_json(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+    def get_user_tasks_for_today_json(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''
@@ -246,7 +246,7 @@ class CategoryRepository(CategoryRepositoryInterface):
     def get_category_by_id(self, category_id: int) -> CategoryEntity:
         return self._model.objects.get(id=category_id).to_domain()
 
-    def get_ordered_user_categories_json(self, user_id: int) -> list[dict[str, Union[str, int]]]:
+    def get_ordered_user_categories_json(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         cursor = self._connection.cursor()
         cursor.execute(
             '''

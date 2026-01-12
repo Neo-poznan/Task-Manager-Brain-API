@@ -16,7 +16,7 @@ class FormJsonResponse(TemplateResponse):
         super().__init__(request, template, context, content_type, status, charset, using)  
 
     def render(self):
-        form = self.context_data['form']
+        form = self.context_data['form'] # type: ignore
         if form.errors:
             return JsonResponse({'context': str(form.errors).replace('__all__', '')}, status=400)
         else:
@@ -45,7 +45,7 @@ class FormJsonResponse(TemplateResponse):
 
     def _get_file_urls_from_form(self, form: ModelForm) -> dict[str, FieldFile]:
         form_file_fields = self._get_form_file_fields(form)
-        return {field_name: form.initial[field_name].url for field_name, field_value in form_file_fields.items()}
+        return {field_name: form.initial[field_name].url for field_name in form_file_fields.keys()}
 
     def _get_form_file_fields(self, form) -> dict[str, FileField]:
         return dict(filter(lambda item: isinstance(item[1], FileField), form.fields.items()))  
@@ -57,7 +57,7 @@ class FormJsonResponse(TemplateResponse):
             choice_fields_choices[field_name + '_choices'] = list(map(lambda item: {'id': item.id, 'name': item.name}, field.queryset))
         return choice_fields_choices
 
-    def _get_form_choice_fields(self, form: ModelForm) -> dict[str, ModelChoiceField]:
+    def _get_form_choice_fields(self, form: ModelForm) -> dict:
         return dict(filter(lambda item: isinstance(item[1], ModelChoiceField), form.fields.items()))
     
     def _get_form_null_fields(self, form: ModelForm) -> dict[str, None]:
