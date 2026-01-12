@@ -4,7 +4,6 @@ from django.urls import reverse_lazy
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import resolve_url
 from django.conf import settings
-from django.db import connection
 from django.views.decorators.csrf import ensure_csrf_cookie
 
 from .forms import UserRegistrationForm, UserLoginForm, UserProfileForm, UserPasswordChangeForm, UserPasswordResetForm, UserPasswordResetConfirmForm

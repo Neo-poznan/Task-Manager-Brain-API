@@ -145,10 +145,10 @@ class TaskService(TaskServiceInterface):
         self._task_repository = task_repository
         self._category_repository = category_repository
 
-    def get_ordered_user_tasks(self, user_id: UUID) -> list[TaskEntityProtocol]:
+    def get_ordered_user_tasks(self, user_id: UUID) -> list[dict]:
         return self._task_repository.get_ordered_user_tasks_json(user_id)
     
-    def get_user_statistics_for_today(self, user_id: UUID) -> list[TaskEntityProtocol]:
+    def get_user_statistics_for_today(self, user_id: UUID) -> dict:
         statistics = {
             'tasks': self._task_repository.get_user_tasks_for_today_json(user_id),
             'categories': self._task_repository.get_count_user_tasks_in_categories_for_today(user_id)
@@ -193,7 +193,7 @@ class TaskUseCase(TaskUseCaseInterface):
             self, 
             task_id: int, 
             user_id: UUID
-        ) -> Union[TaskEntityProtocol, NoReturn]:
+        ) -> Union[dict, NoReturn]:
         task = self._task_repository.get_task_by_id(task_id)
         if task.user_id != user_id:
             raise PermissionError()
@@ -203,7 +203,7 @@ class TaskUseCase(TaskUseCaseInterface):
             self, 
             user_id: UUID, 
             task_data: dict[str, Union[str, int, bool]]
-        ) -> TaskEntityProtocol:
+        ) -> Union[None, NoReturn]:
         task = TaskEntity.from_dict({**task_data, 'user_id': str(user_id), 'order': self._task_repository.get_next_task_order(user_id)})
         self._task_repository.save_task(task)
     
@@ -306,7 +306,7 @@ class CategoryUseCase(CategoryUseCaseInterface):
             self, 
             category_id: int, 
             user_id: UUID
-        ) -> Union[CategoryEntityProtocol, NoReturn]:
+        ) -> Union[dict, NoReturn]:
         category = self._category_repository.get_category_by_id(category_id)
         if category.user_id != user_id:
             raise PermissionError
@@ -319,7 +319,6 @@ class CategoryUseCase(CategoryUseCaseInterface):
         ) -> CategoryEntityProtocol:
         category = CategoryEntity.from_dict({**category_data, 'user_id': str(user_id)})
         self._category_repository.save_category(category)
-        print(f'Created category: {category}')  # Debug statement
         return category
 
     def update(
@@ -348,12 +347,12 @@ class CategoryService(CategoryServiceInterface):
                 self, 
                 category_id: int, 
                 user_id: UUID
-            ) -> Union[CategoryEntityProtocol, NoReturn]:
+            ) -> Union[dict, NoReturn]:
         category = self._category_repository.get_category_by_id(category_id)
         if category.user_id != user_id:
             raise PermissionError
         return category.to_dict(for_form=True)
 
-    def get_ordered_user_categories(self, user_id: UUID) -> list[CategoryEntityProtocol]:
+    def get_ordered_user_categories(self, user_id: UUID) -> list[dict]:
         return self._category_repository.get_ordered_user_categories_json(user_id)  
 

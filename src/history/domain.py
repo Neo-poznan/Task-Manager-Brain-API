@@ -81,7 +81,7 @@ class HistoryEntity:
 @dataclass
 class SharedHistoryEntity:
     key: int
-    user_id: int
+    user_id: UUID
     from_date: date
     to_date: date
     history_statistics: dict

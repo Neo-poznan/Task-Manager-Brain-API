@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from django.urls import reverse_lazy
 from django.views.generic import View, ListView
 from django.db import connection
@@ -151,7 +150,7 @@ class ShareHistoryView(View):
             )
             context = service.get_shared_history_by_key(self.request.GET['key'])
             return JsonResponse(context)
-        except ObjectDoesNotExist as ex:
+        except ObjectDoesNotExist:
             return HttpResponseNotFound(
                     '<h1>404 Not Found</h1><p>Такой сохраненной истории не существует</p>'
                 )

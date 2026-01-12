@@ -1,8 +1,9 @@
 import json
 
+from django.forms import ValidationError
 from django.views.generic import View
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponseForbidden, HttpResponse, JsonResponse, HttpResponseNotFound
+from django.http import HttpResponseBadRequest, HttpResponseForbidden, HttpResponse, JsonResponse, HttpResponseNotFound
 from django.db import connection
 
 from core.http import FormJsonResponse
@@ -111,7 +112,7 @@ class TaskView(
         task_repository=TaskRepository(
             Task, connection
         )
-    ) 
+    )
 
     def dispatch(self, request, *args, **kwargs):
         try:
@@ -124,13 +125,24 @@ class TaskView(
             return HttpResponseForbidden(
                 '<h1>400 Forbidden</h1><p>Вы пытаетесь отредактировать задачу другого пользователя</p>'
             )
+        except json.JSONDecodeError:
+            return HttpResponseBadRequest(
+                '<h1>400 Bad Request</h1><p>Некорректный формат данных</p>'
+            )
+        except ValueError as e:
+            return HttpResponseBadRequest(
+                f'<h1>400 Bad Request</h1><p>{str(e)}</p>'
+            )
+        except ValidationError as e:
+            return HttpResponseBadRequest(
+                f'<h1>400 Bad Request</h1><p>{str(e)}</p>'
+            )
 
     def get(self, request, task_id):
         task = self.use_case.get(
             task_id,
             self.request.user.id,
         )
-        print(f'Fetched task: {task}')  # Debug statement
         return JsonResponse(task)
     
     def post(self, request):
@@ -176,11 +188,11 @@ class CategoryView(
             )
         except PermissionError:
             return HttpResponseForbidden(
-                '<h1>400 Forbidden</h1><p>Вы пытаетесь отредактировать категорию другого пользователя</p>'
+                '<h1>403 Forbidden</h1><p>Вы пытаетесь отредактировать категорию другого пользователя</p>'
             )
         except ValueError as e:
-            return HttpResponseForbidden(
-                f'<h1>400 Forbidden</h1><p>{str(e)}</p>'
+            return HttpResponseBadRequest(
+                f'<h1>400 Bad Request</h1><p>{str(e)}</p>'
             )
 
     def get(self, request, category_id):

@@ -26,8 +26,7 @@ class User(AbstractUser):
         )
     first_name = None
     last_name = None
-    is_superuser = None
-    is_staff = None
+
 
     @classmethod
     def from_domain(cls, entity: Union[UserEntity, IncompleteUserEntity]):
