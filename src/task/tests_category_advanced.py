@@ -386,7 +386,7 @@ def code_block():
             '[1,2,3]',  # Массив вместо объекта
         ]
         
-        for i, malformed_json in enumerate(malformed_jsons):
+        for _, malformed_json in enumerate(malformed_jsons):
             with self.subTest(json_content=malformed_json[:20]):
                 response = self.client.post(
                     '/api/category/',

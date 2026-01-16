@@ -36,7 +36,7 @@ class TaskRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    def save_task(self, task: TaskEntity) -> None:
+    def save_task(self, task_entity: TaskEntity) -> None:
         pass
 
     @abstractmethod

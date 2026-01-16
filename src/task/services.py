@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Union, NoReturn
 from uuid import UUID
 
+from history.infrastructure import HistoryRepositoryInterface
+
 from .infrastructure import TaskRepositoryInterface, CategoryRepositoryInterface
 from .domain import CategoryEntity, TaskEntity, TaskEntityProtocol, CategoryEntityProtocol
 
@@ -9,15 +11,11 @@ from .domain import CategoryEntity, TaskEntity, TaskEntityProtocol, CategoryEnti
 class TaskServiceInterface(ABC):
 
     @abstractmethod
-    def get_ordered_user_tasks(self, user_id: UUID) -> list[TaskEntityProtocol]:
+    def get_ordered_user_tasks(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         pass
 
     @abstractmethod
     def get_user_task_count_by_categories(self, user_id: UUID) -> dict[str, list]:
-        pass
-
-    @abstractmethod
-    def get_user_statistics_for_today(self, user_id: UUID) -> dict[str, list]:
         pass
 
     @abstractmethod
@@ -69,7 +67,7 @@ class CategoryUseCaseInterface(ABC):
                 self, 
                 category_id: int, 
                 user_id: UUID
-            ) -> Union[CategoryEntityProtocol, NoReturn]:
+            ) -> Union[dict, NoReturn]:
         pass
 
     @abstractmethod
@@ -118,6 +116,15 @@ class TaskUseCaseInterface(ABC):
         pass
 
 
+class GetTodayStatisticsUseCaseInterface(ABC):
+    @abstractmethod
+    def execute(
+            self, 
+            user_id: UUID
+        ) -> dict:
+        pass
+
+
 class CategoryServiceInterface(ABC):
     
     @abstractmethod
@@ -125,14 +132,14 @@ class CategoryServiceInterface(ABC):
                 self, 
                 category_id: int, 
                 user_id: UUID
-            ) -> Union[CategoryEntityProtocol, NoReturn]:
+            ) -> Union[dict, NoReturn]:
         pass
 
     @abstractmethod
     def get_ordered_user_categories(
                 self, 
                 user_id: UUID
-            ) -> list[CategoryEntityProtocol]:
+            ) -> list[dict[str, Union[str, int]]]:
         pass
 
 
@@ -145,15 +152,8 @@ class TaskService(TaskServiceInterface):
         self._task_repository = task_repository
         self._category_repository = category_repository
 
-    def get_ordered_user_tasks(self, user_id: UUID) -> list[dict]:
+    def get_ordered_user_tasks(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         return self._task_repository.get_ordered_user_tasks_json(user_id)
-    
-    def get_user_statistics_for_today(self, user_id: UUID) -> dict:
-        statistics = {
-            'tasks': self._task_repository.get_user_tasks_for_today_json(user_id),
-            'categories': self._task_repository.get_count_user_tasks_in_categories_for_today(user_id)
-        }
-        return statistics
 
     def get_user_task_count_by_categories(
                 self, 
@@ -218,7 +218,7 @@ class TaskUseCase(TaskUseCaseInterface):
             category_id: int
         ) -> Union[None, NoReturn]:
         category = self._category_repository.get_category_by_id(category_id)
-        if category.user_id != user_id:
+        if category.user_id != user_id and category.is_custom:
             raise PermissionError()
     
     def update(
@@ -349,6 +349,58 @@ class CategoryUseCase(CategoryUseCaseInterface):
 
         self._category_repository.save_category(category)
         return category
+    
+
+class GetTodayStatisticsUseCase(GetTodayStatisticsUseCaseInterface):
+    def __init__(
+            self, 
+            task_repository: TaskRepositoryInterface, 
+            history_repository: HistoryRepositoryInterface
+        ):
+        self._task_repository = task_repository
+        self._history_repository = history_repository
+
+    def execute(
+            self, 
+            user_id: UUID
+        ) -> dict:
+        planned_tasks = self._task_repository.get_user_tasks_for_today_json(user_id)
+        completed_tasks = self._history_repository.get_user_tasks_for_today_json(user_id)
+        categories_statistics = self._task_repository.get_count_user_tasks_in_categories_for_today(user_id)
+        categories_statistics_completed = self._history_repository.get_count_user_tasks_in_categories_for_today(user_id)
+
+        return {
+            'tasks': {
+                'planned': [*planned_tasks, *completed_tasks],
+                'completed': completed_tasks
+            },
+            'categories': {
+                'planned': self._union_categories_statistics(
+                    categories_statistics,
+                    categories_statistics_completed
+                ),
+                'completed': categories_statistics_completed
+            }
+        }
+    
+    def _union_categories_statistics(
+            self,
+            planned: list[dict[str, int]],
+            completed: list[dict[str, int]]
+        ) -> list[dict[str, int]]:
+        # TODO: рефакторить
+        all_categories = [*planned, *completed]
+        category_ids = []
+        result = []
+        for category in all_categories:
+            if category['id'] not in category_ids:
+                result.append(category)
+                category_ids.append(category['id'])
+            else:
+                for result_category in result:
+                    if result_category['id'] == category['id']:
+                        result_category['taskCount'] += category['taskCount']
+        return result
 
 
 class CategoryService(CategoryServiceInterface):
@@ -365,6 +417,6 @@ class CategoryService(CategoryServiceInterface):
             raise PermissionError
         return category.to_dict(for_form=True)
 
-    def get_ordered_user_categories(self, user_id: UUID) -> list[dict]:
+    def get_ordered_user_categories(self, user_id: UUID) -> list[dict[str, Union[str, int]]]:
         return self._category_repository.get_ordered_user_categories_json(user_id)  
 

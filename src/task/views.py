@@ -8,8 +8,10 @@ from django.db import connection
 
 from core.http import FormJsonResponse
 from core.mixins import ApiLoginRequiredMixin
+from history.infrastructure import HistoryRepository
+from history.models import History
 from .models import Task, Category
-from .services import CategoryService, CategoryUseCase, TaskService, DeadlinesUpdateUseCase, TaskOrderUpdateUseCase, TaskUseCase
+from .services import CategoryService, CategoryUseCase, GetTodayStatisticsUseCase, TaskService, DeadlinesUpdateUseCase, TaskOrderUpdateUseCase, TaskUseCase
 from .infrastructure import TaskRepository, CategoryRepository
 
 
@@ -39,16 +41,14 @@ class TodayTasksView(
         ApiLoginRequiredMixin,
         View,
     ):
-    service = TaskService(
-        task_repository=TaskRepository(
-            Task, 
-            connection
-        )
+    use_case = GetTodayStatisticsUseCase(
+        task_repository=TaskRepository(Task, connection),
+        history_repository=HistoryRepository(History, connection)
     )
 
     def get(self, request):
         data = {}
-        data = self.service.get_user_statistics_for_today(
+        data = self.use_case.execute(
             self.request.user.id
         )
 
