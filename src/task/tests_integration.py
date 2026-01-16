@@ -29,14 +29,14 @@ class TaskIntegrationTest(TestCase):
         self.category1 = Category.objects.create(
             name='Test Category 1',
             description='Test description',
-            color='rgb(255,0,0)',
+            color='rgba(255, 0, 0, 0.4)',
             user=self.user1,
             is_custom=True
         )
         self.category2 = Category.objects.create(
             name='Test Category 2',
             description='Another test description',
-            color='rgb(0,255,0)',
+            color='rgba(0, 255, 0, 0.5)',
             user=self.user2,
             is_custom=True
         )

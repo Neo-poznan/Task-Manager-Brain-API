@@ -18,6 +18,7 @@ class HistoryEntity:
         planned_time: Optional[timedelta] = None,
         execution_date: Optional[date] = None,
         category_id: Optional[int] = None,
+        planned_deadline: Optional[date] = None,
     ):
         self.id = id
         self.name = name
@@ -27,6 +28,7 @@ class HistoryEntity:
         self.execution_time = execution_time
         self.execution_date = execution_date
         self.status = self._validate_status(status)
+        self.planned_deadline = planned_deadline
     
     def _validate_name(self, name: str) -> Union[str, NoReturn]:
         if not name:
@@ -50,6 +52,7 @@ class HistoryEntity:
             planned_time=task.planned_time,
             execution_time=execution_time,
             status=cls._get_status(is_successful, task.deadline, date.today()),
+            planned_deadline=task.deadline
         )
 
     @classmethod

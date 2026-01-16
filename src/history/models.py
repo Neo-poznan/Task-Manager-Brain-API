@@ -58,6 +58,12 @@ class History(models.Model):
             choices=HistoryTaskStatusChoices.choices, 
             verbose_name='Статус, к примеру, была задача выполнена или провалена'
         )
+    
+    planned_deadline = models.DateField(
+            null=True,
+            blank=True,
+            verbose_name='Изначальный дедлайн задачи, если он был установлен'
+        )
 
     objects = DomainQuerySet.as_manager()
 
@@ -71,7 +77,8 @@ class History(models.Model):
             planned_time=entity.planned_time,
             execution_time=entity.execution_time,
             execution_date=entity.execution_date,
-            status=entity.status
+            status=entity.status,
+            planned_deadline=entity.planned_deadline
         )
 
     def to_domain(self) -> HistoryEntity:
@@ -83,7 +90,8 @@ class History(models.Model):
             planned_time=self.planned_time,
             execution_time=self.execution_time,
             execution_date=self.execution_date,
-            status=self.status
+            status=self.status,
+            planned_deadline=self.planned_deadline
         )
 
     def __str__(self):
